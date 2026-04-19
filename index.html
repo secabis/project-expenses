@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+<title>Project Expenses</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f7f7f6;--bg3:#eeede9;
+  --text:#1a1a1a;--text2:#6b6b6b;--text3:#b0b0b0;
+  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
+  --radius:8px;--radius-lg:12px;--accent:#3266ad;
+}
+@media(prefers-color-scheme:dark){
+  :root{--bg:#1c1c1e;--bg2:#2c2c2e;--bg3:#3a3a3c;--text:#f2f2f7;--text2:#ababab;--text3:#5a5a5a;--border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14)}
+  .cat-subscriptions{background:#0C447C!important;color:#B5D4F4!important}
+  .cat-hosting{background:#27500A!important;color:#C0DD97!important}
+  .cat-tools{background:#633806!important;color:#FAC775!important}
+  .cat-other{background:#3a3a3c!important;color:#ababab!important}
+  .toggle input:checked+.ts{background:#d0d0d0!important}
+  .toggle input:checked+.ts::before{background:#222!important}
+}
+body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);height:100dvh;overflow:hidden}
+.app{display:flex;height:100dvh}
+
+/* ── Auth screen ── */
+#auth-screen{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0}
+#auth-screen.hidden{display:none}
+.auth-card{background:var(--bg2);border-radius:16px;border:.5px solid var(--border2);padding:40px 36px;width:340px;text-align:center}
+.auth-logo{font-size:13px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text2);margin-bottom:28px}
+.auth-title{font-size:20px;font-weight:500;margin-bottom:8px}
+.auth-sub{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:28px}
+.google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);cursor:pointer;font-size:14px;font-weight:500;font-family:inherit;color:var(--text);transition:background .15s}
+.google-btn:hover{background:var(--bg3)}
+.google-btn svg{flex-shrink:0}
+.auth-note{font-size:11px;color:var(--text3);margin-top:16px;line-height:1.6}
+.config-warning{background:rgba(186,117,23,.12);border:.5px solid rgba(186,117,23,.3);border-radius:var(--radius);padding:12px 14px;font-size:12px;color:#BA7517;margin-bottom:20px;text-align:left;line-height:1.6}
+
+/* ── Sidebar ── */
+.sidebar{width:220px;flex-shrink:0;border-right:.5px solid var(--border);padding:16px 12px;display:flex;flex-direction:column;gap:2px;background:var(--bg2);transition:transform .25s ease;overflow-y:auto}
+.sidebar-logo{font-size:12px;font-weight:600;color:var(--text2);padding:0 8px 4px;letter-spacing:.06em;text-transform:uppercase}
+.section-label{font-size:10px;font-weight:500;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;padding:14px 8px 4px}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:var(--radius);font-size:13px;cursor:pointer;color:var(--text2);transition:background .1s,color .1s;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:var(--bg);color:var(--text);font-weight:500;box-shadow:0 0 0 .5px var(--border2)}
+.nav-icon{width:15px;height:15px;flex-shrink:0}
+.project-item{display:flex;align-items:center;justify-content:space-between;padding:6px 8px;border-radius:var(--radius);font-size:13px;cursor:pointer;color:var(--text2);transition:background .1s}
+.project-item:hover{background:var(--bg3);color:var(--text)}
+.project-item.active{background:var(--bg);color:var(--text);font-weight:500;box-shadow:0 0 0 .5px var(--border2)}
+.project-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-footer{margin-top:auto;padding-top:12px;border-top:.5px solid var(--border);display:flex;flex-direction:column;gap:4px}
+.footer-btn{background:none;border:none;cursor:pointer;font-size:12px;color:var(--text2);padding:6px 8px;border-radius:var(--radius);width:100%;text-align:left;font-family:inherit;display:flex;align-items:center;gap:6px}
+.footer-btn:hover{background:var(--bg3)}
+.danger-link{color:#cc4444}
+.user-chip{display:flex;align-items:center;gap:8px;padding:6px 8px;margin-bottom:4px}
+.user-avatar{width:24px;height:24px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:white;flex-shrink:0}
+.user-name{font-size:12px;color:var(--text2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── Main ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topbar{padding:13px 20px;border-bottom:.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:10px}
+.topbar-left{display:flex;align-items:center;gap:10px;min-width:0}
+.hamburger{display:none;background:none;border:none;cursor:pointer;color:var(--text2);padding:4px;border-radius:6px;flex-shrink:0}
+.page-title{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.add-btn{background:var(--text);color:var(--bg);border:none;border-radius:var(--radius);padding:7px 14px;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.add-btn:hover{opacity:.8}
+.add-btn:disabled{opacity:.4;cursor:not-allowed}
+.sync-btn{background:none;border:.5px solid var(--border2);border-radius:var(--radius);padding:6px 10px;font-size:12px;color:var(--text2);cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px}
+.sync-btn:hover{background:var(--bg2)}
+.content{padding:20px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+.view{display:none}
+.view.active{display:block}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:90}
+
+/* ── Sync status bar ── */
+.sync-bar{display:flex;align-items:center;gap:6px;padding:7px 20px;font-size:11px;color:var(--text2);border-bottom:.5px solid var(--border);background:var(--bg2);flex-shrink:0}
+.sync-bar.hidden{display:none}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--text3);flex-shrink:0}
+.sync-dot.syncing{background:#BA7517;animation:pulse 1s infinite}
+.sync-dot.ok{background:#639922}
+.sync-dot.error{background:#cc4444}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── Modals ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg);border-radius:14px 14px 0 0;border:.5px solid var(--border2);padding:20px 20px 32px;width:100%;max-width:480px;box-shadow:0 -8px 40px rgba(0,0,0,.14);max-height:94dvh;overflow-y:auto}
+.modal-drag{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 18px}
+.modal-title{font-size:15px;font-weight:500;margin-bottom:16px}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:11px;font-weight:500;color:var(--text2);letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;padding:9px 11px;font-size:15px;border:.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-family:inherit;outline:none;transition:border-color .15s;-webkit-appearance:none;appearance:none}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(50,102,173,.12)}
+.field textarea{resize:none;height:64px;font-size:14px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0 4px}
+.toggle-label{font-size:13px;color:var(--text2)}
+.toggle{position:relative;width:36px;height:20px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.ts{position:absolute;inset:0;background:var(--border2);border-radius:20px;cursor:pointer;transition:background .2s}
+.ts::before{content:'';position:absolute;width:14px;height:14px;left:3px;bottom:3px;background:white;border-radius:50%;transition:transform .2s}
+.toggle input:checked+.ts{background:var(--accent)}
+.toggle input:checked+.ts::before{transform:translateX(16px)}
+.modal-actions{display:flex;gap:8px;margin-top:18px}
+.btn-cancel{flex:1;padding:11px;border:.5px solid var(--border2);border-radius:var(--radius);background:none;font-size:14px;cursor:pointer;color:var(--text2);font-family:inherit}
+.btn-cancel:hover{background:var(--bg2)}
+.btn-save{flex:2;padding:11px;border:none;border-radius:var(--radius);background:var(--text);color:var(--bg);font-size:14px;font-weight:500;cursor:pointer;font-family:inherit}
+.btn-save:hover{opacity:.85}
+.btn-save:disabled{opacity:.4;cursor:not-allowed}
+.field-wrap{position:relative}
+.autocomplete-list{position:absolute;top:calc(100% + 2px);left:0;right:0;background:var(--bg);border:.5px solid var(--border2);border-radius:var(--radius);z-index:400;max-height:170px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.autocomplete-item{padding:9px 12px;font-size:13px;cursor:pointer;color:var(--text);display:flex;justify-content:space-between;align-items:center}
+.autocomplete-item:hover{background:var(--bg2)}
+.autocomplete-cat{font-size:11px;color:var(--text3)}
+
+/* ── Dashboard ── */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.stat-card{background:var(--bg2);border-radius:var(--radius-lg);padding:13px 14px}
+.stat-label{font-size:10px;color:var(--text2);letter-spacing:.07em;text-transform:uppercase;margin-bottom:5px}
+.stat-value{font-size:20px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:3px}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.chart-card{background:var(--bg2);border-radius:var(--radius-lg);padding:15px}
+.chart-title{font-size:11px;font-weight:500;color:var(--text2);letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px}
+.cat-bar-wrap{margin-bottom:9px}
+.cat-bar-label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;color:var(--text);gap:8px}
+.cat-bar-label span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cat-bar-track{height:4px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.cat-bar-fill{height:100%;border-radius:3px}
+.forecast-badge{display:inline-flex;align-items:center;font-size:10px;color:var(--accent);background:rgba(50,102,173,.1);padding:2px 7px;border-radius:4px;margin-left:6px;font-weight:400;text-transform:none;letter-spacing:0}
+
+/* ── Expense table ── */
+.expense-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.expense-table th{font-size:10px;font-weight:500;color:var(--text2);letter-spacing:.07em;text-transform:uppercase;padding:0 8px 10px 0;text-align:left;border-bottom:.5px solid var(--border)}
+.expense-table th.right{text-align:right;padding-right:0}
+.expense-table td{padding:10px 8px 10px 0;font-size:13px;border-bottom:.5px solid var(--border);vertical-align:middle;overflow:hidden}
+.expense-table tr:last-child td{border-bottom:none}
+.col-vendor{width:auto}.col-cat{width:120px}.col-date{width:90px}.col-amount{width:100px;text-align:right}.col-del{width:32px;text-align:right;padding-right:0!important}
+.vendor-name{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.note-text{font-size:11px;color:var(--text3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.recurring-row{font-size:11px;color:var(--text2);margin-top:2px;display:flex;align-items:center;gap:4px}
+.recurring-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.cat-badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:500;white-space:nowrap}
+.cat-subscriptions{background:#E6F1FB;color:#0C447C}
+.cat-hosting{background:#EAF3DE;color:#27500A}
+.cat-tools{background:#FAEEDA;color:#633806}
+.cat-other{background:#F1EFE8;color:#444441}
+.amount-col{font-weight:500;font-size:13px;font-family:'SF Mono','Menlo',monospace;white-space:nowrap;text-align:right}
+.delete-btn{background:none;border:none;cursor:pointer;color:var(--text3);padding:4px;border-radius:4px;opacity:0;transition:opacity .15s;display:flex;align-items:center;justify-content:center;margin-left:auto}
+.expense-table tr:hover .delete-btn{opacity:1}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text2);font-size:14px}
+
+/* ── Recurring ── */
+.recurring-item{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg2);border-radius:var(--radius);margin-bottom:8px;gap:12px}
+.rec-info{flex:1;min-width:0}
+.rec-name{font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec-meta{font-size:11px;color:var(--text2);margin-top:2px}
+.rec-amount{font-weight:500;font-size:13px;white-space:nowrap;font-family:'SF Mono','Menlo',monospace}
+.edit-btn{background:none;border:.5px solid var(--border2);cursor:pointer;color:var(--text2);padding:5px 10px;border-radius:6px;font-size:12px;font-family:inherit;white-space:nowrap;flex-shrink:0}
+.edit-btn:hover{background:var(--bg3)}
+
+/* ── Settings ── */
+.settings-title{font-size:13px;font-weight:500;color:var(--text2);margin-bottom:12px;padding-bottom:8px;border-bottom:.5px solid var(--border)}
+.settings-section{margin-bottom:28px}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;font-size:13px;border-bottom:.5px solid var(--border);gap:16px}
+.settings-row:last-child{border-bottom:none}
+.settings-row p{font-size:11px;color:var(--text2);margin-top:2px}
+.btn-danger{background:none;border:.5px solid rgba(204,68,68,.4);border-radius:var(--radius);padding:7px 14px;font-size:13px;color:#cc4444;cursor:pointer;font-family:inherit;white-space:nowrap}
+.btn-danger:hover{background:rgba(204,68,68,.06)}
+
+/* ── Project modal ── */
+.sheet-url-note{font-size:11px;color:var(--text2);margin-top:6px;line-height:1.5}
+
+/* ── Responsive ── */
+@media(max-width:768px){
+  .sidebar{position:fixed;top:0;left:0;bottom:0;z-index:100;transform:translateX(-100%);box-shadow:4px 0 24px rgba(0,0,0,.12)}
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-overlay.open{display:block}
+  .hamburger{display:flex}
+  .stat-grid{grid-template-columns:repeat(2,1fr)}
+  .charts-row{grid-template-columns:1fr}
+  .col-cat,.col-cat-th{display:none}
+  .content{padding:16px}
+  .topbar{padding:12px 16px}
+  .sync-bar{padding:7px 16px}
+}
+@media(max-width:480px){
+  .stat-value{font-size:17px}
+  .col-date,.col-date-th{display:none}
+  .modal{border-radius:16px 16px 0 0}
+}
+</style>
+</head>
+<body>
+
+<!-- ── Auth Screen ── -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">Project Expenses</div>
+    <div id="config-warning" class="config-warning" style="display:none">
+      ⚠️ <strong>Setup required:</strong> Open <code>index.html</code> and replace <code>YOUR_GOOGLE_CLIENT_ID</code> with your OAuth client ID. See <code>SETUP.md</code> for instructions.
+    </div>
+    <div class="auth-title">Sign in to continue</div>
+    <div class="auth-sub">Your expenses are stored in Google Sheets — your data, your Drive.</div>
+    <button class="google-btn" onclick="signIn()">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/></svg>
+      Sign in with Google
+    </button>
+    <div class="auth-note">Access is read/write to your own Google Drive only.<br>No data is sent to any third party.</div>
+  </div>
+</div>
+
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<div class="app">
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">Expenses</div>
+
+    <div class="user-chip">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <span class="user-name" id="user-name">Not signed in</span>
+    </div>
+
+    <div class="section-label">Views</div>
+    <button class="nav-item active" onclick="switchView('dashboard',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".7"/><rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".7"/><rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".7"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".7"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-item" onclick="switchView('expenses',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      All Expenses
+    </button>
+    <button class="nav-item" onclick="switchView('recurring',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M14 8A6 6 0 1 1 8 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M8 2l2.5 2.5L8 7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Recurring
+    </button>
+    <button class="nav-item" onclick="switchView('settings',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Settings
+    </button>
+
+    <div class="section-label">Projects</div>
+    <div id="project-list"></div>
+    <button class="nav-item" onclick="openNewProject()" style="margin-top:2px;color:var(--accent)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      New project
+    </button>
+
+    <div class="sidebar-footer">
+      <button class="footer-btn" onclick="syncNow()">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M12 2v4H8M1 11V7h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.5 4.5A5 5 0 0 1 11 6M10.5 8.5A5 5 0 0 1 2 7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Sync now
+      </button>
+      <button class="footer-btn danger-link" onclick="confirmReset()">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 2l9 9M11 2l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Clear local data
+      </button>
+      <button class="footer-btn" onclick="signOut()">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M8 2H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h5M10 9l2-2.5L10 4M5 6.5h7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Sign out
+      </button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">
+          <svg width="18" height="14" viewBox="0 0 18 14" fill="none"><path d="M1 1h16M1 7h16M1 13h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+        <span class="page-title" id="page-title">Dashboard</span>
+      </div>
+      <div class="topbar-right">
+        <button class="add-btn" id="add-btn" onclick="openModal()">
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1v9M1 5.5h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Add expense
+        </button>
+      </div>
+    </div>
+
+    <div class="sync-bar hidden" id="sync-bar">
+      <span class="sync-dot" id="sync-dot"></span>
+      <span id="sync-msg">Ready</span>
+    </div>
+
+    <div class="content">
+      <div class="view active" id="view-dashboard">
+        <div class="stat-grid" id="stat-grid"></div>
+        <div class="charts-row">
+          <div class="chart-card"><div class="chart-title">By category</div><div id="cat-bars"></div></div>
+          <div class="chart-card">
+            <div class="chart-title">Monthly burn &amp; forecast</div>
+            <div style="position:relative;height:190px;"><canvas id="burnChart" role="img" aria-label="Monthly expense totals with 3-month forecast">Monthly expenses chart.</canvas></div>
+          </div>
+        </div>
+        <div class="chart-card" style="margin-bottom:12px;"><div class="chart-title">Top vendors</div><div id="vendor-bars"></div></div>
+        <div class="chart-card"><div class="chart-title">3-month forecast <span class="forecast-badge">based on recurring</span></div><div id="forecast-bars"></div></div>
+      </div>
+      <div class="view" id="view-expenses"><div id="expense-list-wrap"></div></div>
+      <div class="view" id="view-recurring"><div id="recurring-wrap"></div></div>
+      <div class="view" id="view-settings">
+        <div class="settings-section">
+          <div class="settings-title">Google Sheet</div>
+          <div class="settings-row">
+            <div><div>Spreadsheet</div><p id="sheet-url-display">Not connected</p></div>
+            <button class="edit-btn" onclick="openSheetSettings()">Change</button>
+          </div>
+          <div class="settings-row">
+            <div><div>Active project</div><p id="active-project-display">None</p></div>
+          </div>
+        </div>
+        <div class="settings-section">
+          <div class="settings-title">Vendors</div>
+          <div id="vendor-mgmt"></div>
+          <div style="margin-top:12px;">
+            <div class="field" style="margin-bottom:0;">
+              <label>Add vendor</label>
+              <div style="display:flex;gap:8px;">
+                <input type="text" id="new-vendor-input" placeholder="Vendor name" style="flex:1;" onkeydown="if(event.key==='Enter')addVendor()"/>
+                <button class="btn-save" style="flex:0;padding:9px 16px;white-space:nowrap;" onclick="addVendor()">Add</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="settings-section">
+          <div class="settings-title">Data</div>
+          <div class="settings-row">
+            <div><div>Export as JSON</div><p>Download a local backup</p></div>
+            <button class="edit-btn" onclick="exportData()">Export</button>
+          </div>
+          <div class="settings-row">
+            <div><div>Clear local cache</div><p>Forces a fresh sync from Google Sheets on next load</p></div>
+            <button class="btn-danger" onclick="confirmReset()">Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Expense Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-drag"></div>
+    <div class="modal-title" id="modal-title">New expense</div>
+    <div class="field">
+      <label>Vendor</label>
+      <div class="field-wrap">
+        <input type="text" id="inp-vendor" placeholder="Search or select vendor…" autocomplete="off"
+          oninput="handleVendorInput()" onfocus="handleVendorInput()" onkeydown="handleVendorKey(event)"/>
+        <div class="autocomplete-list" id="autocomplete" style="display:none;"></div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Note <span style="font-weight:400;opacity:.55;letter-spacing:0;text-transform:none;">(optional)</span></label>
+      <textarea id="inp-note" placeholder="e.g. Team plan, annual billing, promo code…"></textarea>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Amount</label><input type="number" id="inp-amount" placeholder="0.00" step="0.01" min="0" inputmode="decimal"/></div>
+      <div class="field"><label>Currency</label><select id="inp-currency"><option>EUR</option><option>USD</option><option>GBP</option><option>CHF</option><option>JPY</option><option>CAD</option><option>AUD</option></select></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Category</label><select id="inp-category"><option value="subscriptions">Subscriptions</option><option value="hosting">Hosting & Infra</option><option value="tools">Tools & Software</option><option value="other">Other</option></select></div>
+      <div class="field"><label>Date</label><input type="date" id="inp-date"/></div>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Recurring monthly</span>
+      <label class="toggle"><input type="checkbox" id="inp-recurring"/><span class="ts"></span></label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" id="modal-save-btn" onclick="saveExpense()">Save expense</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Recurring Modal -->
+<div class="modal-overlay" id="edit-rec-overlay" onclick="if(event.target===this)closeEditRec()">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:440px;">
+    <div class="modal-drag"></div>
+    <div class="modal-title" id="edit-rec-title">Edit recurring</div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6;">Changes apply <strong>from the effective date forward</strong> and won't modify previously logged entries.</p>
+    <div class="row2">
+      <div class="field"><label>New amount</label><input type="number" id="er-amount" placeholder="0.00" step="0.01" min="0" inputmode="decimal"/></div>
+      <div class="field"><label>Currency</label><select id="er-currency"><option>EUR</option><option>USD</option><option>GBP</option><option>CHF</option><option>JPY</option><option>CAD</option><option>AUD</option></select></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Category</label><select id="er-category"><option value="subscriptions">Subscriptions</option><option value="hosting">Hosting & Infra</option><option value="tools">Tools & Software</option><option value="other">Other</option></select></div>
+      <div class="field"><label>Effective from</label><input type="date" id="er-effective"/></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeEditRec()">Cancel</button>
+      <button class="btn-save" onclick="saveEditRec()">Apply changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- New / Edit Project Modal -->
+<div class="modal-overlay" id="project-overlay" onclick="if(event.target===this)closeProjectModal()">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:440px;">
+    <div class="modal-drag"></div>
+    <div class="modal-title" id="project-modal-title">New project</div>
+    <div class="field"><label>Project name</label><input type="text" id="proj-name" placeholder="e.g. D365 Navigator"/></div>
+    <div class="field">
+      <label>Google Sheet ID <span style="font-weight:400;opacity:.55;letter-spacing:0;text-transform:none;">(optional — auto-created if blank)</span></label>
+      <input type="text" id="proj-sheet-id" placeholder="Paste Sheet ID or leave blank"/>
+      <div class="sheet-url-note">The Sheet ID is the long string in the Google Sheets URL between /d/ and /edit</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeProjectModal()">Cancel</button>
+      <button class="btn-save" id="proj-save-btn" onclick="saveProject()">Create project</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sheet Settings Modal -->
+<div class="modal-overlay" id="sheet-settings-overlay" onclick="if(event.target===this)closeSheetSettings()">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:440px;">
+    <div class="modal-drag"></div>
+    <div class="modal-title">Sheet settings</div>
+    <div class="field">
+      <label>Google Sheet ID</label>
+      <input type="text" id="ss-sheet-id" placeholder="Paste Sheet ID"/>
+      <div class="sheet-url-note">Find it in the URL: docs.google.com/spreadsheets/d/<strong>[ID]</strong>/edit</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeSheetSettings()">Cancel</button>
+      <button class="btn-save" onclick="saveSheetSettings()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ════════════════════════════════════════════
+// CONFIG — replace with your values after following SETUP.md
+// ════════════════════════════════════════════
+const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID';
+const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file';
+
+// ════════════════════════════════════════════
+// Storage keys
+// ════════════════════════════════════════════
+const SK  = 'exp_expenses_v1';
+const VK  = 'exp_vendors_v1';
+const RK  = 'exp_overrides_v1';
+const PK  = 'exp_projects_v1';   // [{id, name, sheetId, sheetName}]
+const APK = 'exp_active_proj_v1';
+const TK  = 'exp_token_v1';
+
+function loadLS(k,def=[]){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def}catch{return def}}
+function saveLS(k,v){localStorage.setItem(k,JSON.stringify(v))}
+
+function loadExpenses(){return loadLS(SK)}
+function saveExpenses(l){saveLS(SK,l)}
+function loadVendors(){return loadLS(VK)}
+function saveVendors(l){saveLS(VK,[...new Set(l)])}
+function loadOverrides(){return loadLS(RK,{})}
+function saveOverrides(o){saveLS(RK,o)}
+function loadProjects(){return loadLS(PK)}
+function saveProjects(l){saveLS(PK,l)}
+function getActiveProject(){return loadLS(APK,null)}
+function setActiveProject(p){saveLS(APK,p)}
+
+// ════════════════════════════════════════════
+// Google Auth (GIS)
+// ════════════════════════════════════════════
+let tokenClient=null, accessToken=null, tokenExpiry=0;
+
+function isConfigured(){return GOOGLE_CLIENT_ID && GOOGLE_CLIENT_ID !== 'YOUR_GOOGLE_CLIENT_ID'}
+
+window.onload=function(){
+  if(!isConfigured()){
+    document.getElementById('config-warning').style.display='block';
+    document.getElementById('auth-screen').classList.remove('hidden');
+    return;
+  }
+  const saved=loadLS(TK,null);
+  if(saved && saved.token && Date.now()<saved.expiry){
+    accessToken=saved.token; tokenExpiry=saved.expiry;
+    initApp();
+  } else {
+    document.getElementById('auth-screen').classList.remove('hidden');
+    loadGIS();
+  }
+};
+
+function loadGIS(){
+  const s=document.createElement('script');
+  s.src='https://accounts.google.com/gsi/client';
+  s.onload=()=>{
+    tokenClient=google.accounts.oauth2.initTokenClient({
+      client_id:GOOGLE_CLIENT_ID, scope:SCOPES,
+      callback:(resp)=>{
+        if(resp.error){setSyncStatus('error','Auth failed');return}
+        accessToken=resp.access_token;
+        tokenExpiry=Date.now()+(resp.expires_in-60)*1000;
+        saveLS(TK,{token:accessToken,expiry:tokenExpiry});
+        fetchUserInfo();
+        initApp();
+      }
+    });
+  };
+  document.head.appendChild(s);
+}
+
+function signIn(){
+  if(!isConfigured()){alert('Please configure your Google Client ID first. See SETUP.md');return}
+  if(!tokenClient){loadGIS();setTimeout(()=>tokenClient&&tokenClient.requestAccessToken(),1500)}
+  else tokenClient.requestAccessToken();
+}
+
+function signOut(){
+  if(accessToken) google.accounts.oauth2.revoke(accessToken);
+  localStorage.removeItem(TK);
+  accessToken=null;
+  document.getElementById('auth-screen').classList.remove('hidden');
+}
+
+function ensureToken(){
+  if(accessToken && Date.now()<tokenExpiry) return Promise.resolve();
+  return new Promise(res=>{tokenClient.requestAccessToken();setTimeout(res,2000)});
+}
+
+// ════════════════════════════════════════════
+// User info
+// ════════════════════════════════════════════
+async function fetchUserInfo(){
+  try{
+    const r=await gFetch('https://www.googleapis.com/oauth2/v3/userinfo');
+    document.getElementById('user-name').textContent=r.name||r.email||'Signed in';
+    document.getElementById('user-avatar').textContent=(r.name||'?')[0].toUpperCase();
+  }catch(e){}
+}
+
+// ════════════════════════════════════════════
+// Google API helpers
+// ════════════════════════════════════════════
+async function gFetch(url,opts={}){
+  await ensureToken();
+  const r=await fetch(url,{...opts,headers:{...opts.headers,'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'}});
+  if(!r.ok){const e=await r.text();throw new Error(e)}
+  return r.json();
+}
+
+// ════════════════════════════════════════════
+// Google Sheets helpers
+// ════════════════════════════════════════════
+const HEADER=['ID','Vendor','Note','Amount','Currency','Category','Date','Recurring'];
+
+async function ensureSheet(project){
+  // If no sheetId, create a new spreadsheet
+  if(!project.sheetId){
+    setSyncStatus('syncing','Creating spreadsheet…');
+    const resp=await gFetch('https://sheets.googleapis.com/v4/spreadsheets',{
+      method:'POST',
+      body:JSON.stringify({properties:{title:'Project Expenses — '+project.name},sheets:[{properties:{title:project.name}}]})
+    });
+    project.sheetId=resp.spreadsheetId;
+    project.sheetName=project.name;
+    updateProject(project);
+    // Write header
+    await writeRow(project.sheetId,project.sheetName,1,HEADER);
+    return project;
+  }
+  // Ensure the sheet tab exists
+  const meta=await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${project.sheetId}?fields=sheets.properties`);
+  const exists=meta.sheets.some(s=>s.properties.title===project.name);
+  if(!exists){
+    await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${project.sheetId}:batchUpdate`,{
+      method:'POST',body:JSON.stringify({requests:[{addSheet:{properties:{title:project.name}}}]})
+    });
+    project.sheetName=project.name;
+    updateProject(project);
+    await writeRow(project.sheetId,project.sheetName,1,HEADER);
+  } else {
+    project.sheetName=project.name;
+  }
+  return project;
+}
+
+async function writeRow(sheetId,sheetName,row,values){
+  const range=`'${sheetName}'!A${row}`;
+  await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}?valueInputOption=RAW`,{
+    method:'PUT',body:JSON.stringify({range,majorDimension:'ROWS',values:[values]})
+  });
+}
+
+async function appendRow(sheetId,sheetName,values){
+  const range=`'${sheetName}'!A:H`;
+  await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{
+    method:'POST',body:JSON.stringify({values:[values]})
+  });
+}
+
+async function deleteRow(sheetId,sheetName,rowIndex){
+  // Get sheet id (gid) for the named sheet
+  const meta=await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets.properties`);
+  const sheet=meta.sheets.find(s=>s.properties.title===sheetName);
+  if(!sheet)return;
+  const gid=sheet.properties.sheetId;
+  await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}:batchUpdate`,{
+    method:'POST',body:JSON.stringify({requests:[{deleteDimension:{range:{sheetId:gid,dimension:'ROWS',startIndex:rowIndex,endIndex:rowIndex+1}}}]})
+  });
+}
+
+async function readAllRows(sheetId,sheetName){
+  const range=`'${sheetName}'!A2:H`;
+  try{
+    const r=await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}`);
+    return r.values||[];
+  }catch(e){return[]}
+}
+
+function rowToExpense(row,rowIndex){
+  return{id:row[0]||String(rowIndex),vendor:row[1]||'',note:row[2]||'',amount:parseFloat(row[3])||0,currency:row[4]||'EUR',category:row[5]||'other',date:row[6]||'',recurring:row[7]==='true',_row:rowIndex+2};
+}
+
+async function syncFromSheet(){
+  const proj=getActiveProject();
+  if(!proj||!proj.sheetId)return;
+  setSyncStatus('syncing','Syncing…');
+  try{
+    const rows=await readAllRows(proj.sheetId,proj.sheetName||proj.name);
+    const expenses=rows.map((r,i)=>rowToExpense(r,i));
+    saveExpenses(expenses);
+    const vendors=[...new Set(expenses.map(e=>e.vendor).filter(Boolean))];
+    saveVendors(vendors);
+    setSyncStatus('ok','Synced · '+new Date().toLocaleTimeString());
+    renderCurrent();
+  }catch(e){
+    setSyncStatus('error','Sync failed: '+e.message);
+  }
+}
+
+async function pushExpenseToSheet(expense){
+  const proj=getActiveProject();if(!proj)return;
+  await ensureSheet(proj);
+  const row=[expense.id,expense.vendor,expense.note,expense.amount,expense.currency,expense.category,expense.date,String(expense.recurring)];
+  await appendRow(proj.sheetId,proj.sheetName||proj.name,row);
+}
+
+async function deleteExpenseFromSheet(expense){
+  const proj=getActiveProject();if(!proj||!expense._row)return;
+  await deleteRow(proj.sheetId,proj.sheetName||proj.name,expense._row-1);
+}
+
+// ════════════════════════════════════════════
+// Sync status
+// ════════════════════════════════════════════
+let syncTimeout=null;
+function setSyncStatus(state,msg){
+  const bar=document.getElementById('sync-bar');
+  const dot=document.getElementById('sync-dot');
+  const txt=document.getElementById('sync-msg');
+  bar.classList.remove('hidden');
+  dot.className='sync-dot '+state;
+  txt.textContent=msg;
+  if(state!=='syncing'){clearTimeout(syncTimeout);syncTimeout=setTimeout(()=>bar.classList.add('hidden'),4000)}
+}
+
+// ════════════════════════════════════════════
+// App init
+// ════════════════════════════════════════════
+function initApp(){
+  document.getElementById('auth-screen').classList.add('hidden');
+  fetchUserInfo();
+  renderProjectList();
+  const proj=getActiveProject();
+  if(proj){syncFromSheet()}
+  else{
+    const projects=loadProjects();
+    if(projects.length>0){setActiveProject(projects[0]);renderProjectList();syncFromSheet()}
+    else{showNoProjectState()}
+  }
+  renderDashboard();
+}
+
+function showNoProjectState(){
+  document.getElementById('stat-grid').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px 0;color:var(--text2);font-size:14px;">Create a project to get started →</div>';
+}
+
+// ════════════════════════════════════════════
+// Projects
+// ════════════════════════════════════════════
+let editingProject=null;
+function renderProjectList(){
+  const projects=loadProjects();
+  const active=getActiveProject();
+  document.getElementById('project-list').innerHTML=projects.map(p=>`
+    <div class="project-item ${active&&active.id===p.id?'active':''}" onclick="switchProject('${p.id}')">
+      <span class="project-name">${p.name}</span>
+    </div>`).join('');
+  const ap=active||projects[0];
+  if(ap){
+    document.getElementById('active-project-display').textContent=ap.name;
+    document.getElementById('sheet-url-display').textContent=ap.sheetId?'Sheet ID: '+ap.sheetId.substring(0,20)+'…':'Not yet created';
+  }
+}
+
+function switchProject(id){
+  const p=loadProjects().find(x=>x.id===id);
+  if(!p)return;
+  setActiveProject(p);
+  saveExpenses([]);saveOverrides({});
+  renderProjectList();
+  closeSidebar();
+  setSyncStatus('syncing','Loading '+p.name+'…');
+  syncFromSheet();
+}
+
+function updateProject(proj){
+  const projects=loadProjects().map(p=>p.id===proj.id?proj:p);
+  saveProjects(projects);
+  setActiveProject(proj);
+  renderProjectList();
+}
+
+function openNewProject(){
+  editingProject=null;
+  document.getElementById('project-modal-title').textContent='New project';
+  document.getElementById('proj-save-btn').textContent='Create project';
+  document.getElementById('proj-name').value='';
+  document.getElementById('proj-sheet-id').value='';
+  document.getElementById('project-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('proj-name').focus(),80);
+  closeSidebar();
+}
+
+function closeProjectModal(){document.getElementById('project-overlay').classList.remove('open')}
+
+async function saveProject(){
+  const name=document.getElementById('proj-name').value.trim();
+  if(!name){alert('Enter a project name.');return}
+  const btn=document.getElementById('proj-save-btn');
+  btn.disabled=true;btn.textContent='Creating…';
+  const proj={id:Date.now().toString(),name,sheetId:document.getElementById('proj-sheet-id').value.trim()||null,sheetName:name};
+  setSyncStatus('syncing','Setting up sheet…');
+  try{
+    const ready=await ensureSheet(proj);
+    const projects=loadProjects();projects.push(ready);saveProjects(projects);
+    setActiveProject(ready);
+    saveExpenses([]);saveOverrides({});
+    renderProjectList();closeProjectModal();
+    setSyncStatus('ok','Project created');
+    renderCurrent();
+  }catch(e){
+    setSyncStatus('error','Failed: '+e.message);
+  }finally{btn.disabled=false;btn.textContent='Create project'}
+}
+
+function openSheetSettings(){
+  const proj=getActiveProject();
+  document.getElementById('ss-sheet-id').value=proj?proj.sheetId||'':'';
+  document.getElementById('sheet-settings-overlay').classList.add('open');
+}
+function closeSheetSettings(){document.getElementById('sheet-settings-overlay').classList.remove('open')}
+async function saveSheetSettings(){
+  const proj=getActiveProject();if(!proj)return;
+  proj.sheetId=document.getElementById('ss-sheet-id').value.trim();
+  updateProject(proj);closeSheetSettings();syncFromSheet();
+}
+
+// ════════════════════════════════════════════
+// FX & formatting
+// ════════════════════════════════════════════
+const FX={EUR:1,USD:.92,GBP:1.17,CHF:1.04,JPY:.0061,CAD:.68,AUD:.60};
+function toEUR(a,c){return a*(FX[c]||1)}
+function fmtEUR(n){return '€'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function fmtCur(a,c){const s={EUR:'€',USD:'$',GBP:'£',CHF:'CHF ',JPY:'¥',CAD:'CA$',AUD:'A$'};return(s[c]||c+' ')+parseFloat(a).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+const catLabel={subscriptions:'Subscriptions',hosting:'Hosting & Infra',tools:'Tools & Software',other:'Other'};
+const catClass={subscriptions:'cat-subscriptions',hosting:'cat-hosting',tools:'cat-tools',other:'cat-other'};
+const catColors={subscriptions:'#3266ad',hosting:'#639922',tools:'#BA7517',other:'#888780'};
+
+// ════════════════════════════════════════════
+// Sidebar / navigation
+// ════════════════════════════════════════════
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebar-overlay').classList.toggle('open')}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('open')}
+
+function switchView(name,el){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  el.classList.add('active');
+  const t={dashboard:'Dashboard',expenses:'All Expenses',recurring:'Recurring',settings:'Settings'};
+  document.getElementById('page-title').textContent=t[name];
+  closeSidebar();
+  if(name==='dashboard')renderDashboard();
+  if(name==='expenses')renderExpenses();
+  if(name==='recurring')renderRecurring();
+  if(name==='settings')renderSettings();
+}
+
+function renderCurrent(){
+  const active=document.querySelector('.view.active');if(!active)return;
+  const id=active.id.replace('view-','');
+  if(id==='dashboard')renderDashboard();
+  if(id==='expenses')renderExpenses();
+  if(id==='recurring')renderRecurring();
+  if(id==='settings')renderSettings();
+}
+
+async function syncNow(){setSyncStatus('syncing','Syncing…');await syncFromSheet();closeSidebar()}
+
+// ════════════════════════════════════════════
+// Expense modal
+// ════════════════════════════════════════════
+let editingId=null;
+function openModal(id){
+  editingId=id||null;
+  const e=id?loadExpenses().find(x=>x.id===id):null;
+  document.getElementById('modal-title').textContent=e?'Edit expense':'New expense';
+  document.getElementById('modal-save-btn').textContent=e?'Save changes':'Save expense';
+  document.getElementById('inp-date').value=e?e.date:new Date().toISOString().split('T')[0];
+  document.getElementById('inp-vendor').value=e?e.vendor:'';
+  document.getElementById('inp-note').value=e?(e.note||''):'';
+  document.getElementById('inp-amount').value=e?e.amount:'';
+  document.getElementById('inp-currency').value=e?e.currency:'EUR';
+  document.getElementById('inp-category').value=e?e.category:'subscriptions';
+  document.getElementById('inp-recurring').checked=e?e.recurring:false;
+  document.getElementById('autocomplete').style.display='none';
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(()=>{document.getElementById('inp-vendor').focus();if(!e)handleVendorInput()},80);
+}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open');document.getElementById('autocomplete').style.display='none'}
+function handleOverlayClick(e){if(e.target===document.getElementById('modal-overlay'))closeModal()}
+
+function handleVendorInput(){
+  const val=document.getElementById('inp-vendor').value.toLowerCase().trim();
+  const vendors=loadVendors();const expenses=loadExpenses();
+  const matches=val.length===0?vendors:vendors.filter(v=>v.toLowerCase().includes(val));
+  const ac=document.getElementById('autocomplete');
+  if(!matches.length){ac.style.display='none';return}
+  ac.innerHTML=matches.slice(0,8).map(m=>{const prev=[...expenses].reverse().find(ex=>ex.vendor===m);const cat=prev?`<span class="autocomplete-cat">${catLabel[prev.category]||prev.category}</span>`:'';return`<div class="autocomplete-item" onmousedown="selectVendor('${m.replace(/'/g,"\\'")}')"><span>${m}</span>${cat}</div>`}).join('');
+  ac.style.display='block';
+}
+function handleVendorKey(e){if(e.key==='Escape')document.getElementById('autocomplete').style.display='none'}
+function selectVendor(name){
+  document.getElementById('inp-vendor').value=name;
+  document.getElementById('autocomplete').style.display='none';
+  const prev=[...loadExpenses()].reverse().find(ex=>ex.vendor===name);
+  if(prev){document.getElementById('inp-category').value=prev.category;document.getElementById('inp-currency').value=prev.currency;document.getElementById('inp-recurring').checked=prev.recurring}
+  document.getElementById('inp-amount').focus();
+}
+
+async function saveExpense(){
+  const vendor=document.getElementById('inp-vendor').value.trim();
+  const amount=parseFloat(document.getElementById('inp-amount').value);
+  if(!vendor||isNaN(amount)||amount<=0){alert('Please enter a vendor and a valid amount.');return}
+  const btn=document.getElementById('modal-save-btn');
+  btn.disabled=true;btn.textContent='Saving…';
+  const expense={id:editingId||Date.now().toString(),vendor,note:document.getElementById('inp-note').value.trim(),amount,currency:document.getElementById('inp-currency').value,category:document.getElementById('inp-category').value,date:document.getElementById('inp-date').value,recurring:document.getElementById('inp-recurring').checked};
+  let list=loadExpenses();
+  if(editingId){list=list.map(e=>e.id===editingId?expense:e)}
+  else{list.unshift(expense)}
+  saveExpenses(list);
+  const vendors=loadVendors();vendors.unshift(vendor);saveVendors(vendors);
+  closeModal();renderCurrent();
+  setSyncStatus('syncing','Saving to sheet…');
+  try{
+    if(!editingId){await pushExpenseToSheet(expense)}
+    else{await syncFromSheet()} // re-sync on edit for simplicity
+    setSyncStatus('ok','Saved');
+  }catch(e){setSyncStatus('error','Saved locally, sheet sync failed')}
+  finally{btn.disabled=false;btn.textContent=editingId?'Save changes':'Save expense'}
+}
+
+async function deleteExpense(id){
+  if(!confirm('Delete this expense?'))return;
+  const list=loadExpenses();
+  const exp=list.find(e=>e.id===id);
+  saveExpenses(list.filter(e=>e.id!==id));
+  renderCurrent();
+  setSyncStatus('syncing','Deleting from sheet…');
+  try{
+    if(exp&&exp._row){await deleteExpenseFromSheet(exp);await syncFromSheet()}
+    setSyncStatus('ok','Deleted');
+  }catch(e){setSyncStatus('error','Deleted locally, sheet sync failed')}
+}
+
+// ════════════════════════════════════════════
+// Edit recurring override
+// ════════════════════════════════════════════
+let editRecVendor=null;
+function openEditRec(vendor){
+  editRecVendor=vendor;
+  const ov=loadOverrides()[vendor];
+  const base=[...loadExpenses()].reverse().find(e=>e.vendor===vendor&&e.recurring);
+  document.getElementById('edit-rec-title').textContent='Edit — '+vendor;
+  document.getElementById('er-amount').value=ov?ov.amount:(base?base.amount:'');
+  document.getElementById('er-currency').value=ov?ov.currency:(base?base.currency:'EUR');
+  document.getElementById('er-category').value=ov?ov.category:(base?base.category:'subscriptions');
+  const next=new Date();next.setMonth(next.getMonth()+1);next.setDate(1);
+  document.getElementById('er-effective').value=ov?ov.effectiveFrom:next.toISOString().split('T')[0];
+  document.getElementById('edit-rec-overlay').classList.add('open');
+}
+function closeEditRec(){document.getElementById('edit-rec-overlay').classList.remove('open')}
+function saveEditRec(){
+  const amount=parseFloat(document.getElementById('er-amount').value);
+  if(!editRecVendor||isNaN(amount)||amount<=0){alert('Enter a valid amount.');return}
+  const overrides=loadOverrides();
+  overrides[editRecVendor]={amount,currency:document.getElementById('er-currency').value,category:document.getElementById('er-category').value,effectiveFrom:document.getElementById('er-effective').value};
+  saveOverrides(overrides);closeEditRec();renderCurrent();
+}
+
+function getRecurringMonthly(){
+  const overrides=loadOverrides();const seen=new Set();const result=[];
+  for(const e of loadExpenses()){if(!e.recurring||seen.has(e.vendor))continue;seen.add(e.vendor);const ov=overrides[e.vendor];result.push({vendor:e.vendor,amount:ov?ov.amount:e.amount,currency:ov?ov.currency:e.currency,category:ov?ov.category:e.category})}
+  return result;
+}
+
+// ════════════════════════════════════════════
+// Dashboard
+// ════════════════════════════════════════════
+let burnChartInst=null;
+function renderDashboard(){
+  const expenses=loadExpenses();const now=new Date();
+  const thisMonth=expenses.filter(e=>{const d=new Date(e.date+'T00:00:00');return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()});
+  const totalAll=expenses.reduce((s,e)=>s+toEUR(e.amount,e.currency),0);
+  const totalMonth=thisMonth.reduce((s,e)=>s+toEUR(e.amount,e.currency),0);
+  const recurring=getRecurringMonthly();
+  const recurringMonthly=recurring.reduce((s,e)=>s+toEUR(e.amount,e.currency),0);
+  const vendors=new Set(expenses.map(e=>e.vendor)).size;
+  document.getElementById('stat-grid').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Total spent</div><div class="stat-value">${fmtEUR(totalAll)}</div><div class="stat-sub">all time</div></div>
+    <div class="stat-card"><div class="stat-label">This month</div><div class="stat-value">${fmtEUR(totalMonth)}</div><div class="stat-sub">${thisMonth.length} entries</div></div>
+    <div class="stat-card"><div class="stat-label">Monthly burn</div><div class="stat-value">${fmtEUR(recurringMonthly)}</div><div class="stat-sub">recurring</div></div>
+    <div class="stat-card"><div class="stat-label">Vendors</div><div class="stat-value">${vendors}</div><div class="stat-sub">tracked</div></div>`;
+  const catTotals={};expenses.forEach(e=>{catTotals[e.category]=(catTotals[e.category]||0)+toEUR(e.amount,e.currency)});
+  const maxCat=Math.max(...Object.values(catTotals),1);
+  document.getElementById('cat-bars').innerHTML=Object.entries(catTotals).sort((a,b)=>b[1]-a[1]).map(([cat,total])=>`<div class="cat-bar-wrap"><div class="cat-bar-label"><span>${catLabel[cat]||cat}</span><span>${fmtEUR(total)}</span></div><div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.round(total/maxCat*100)}%;background:${catColors[cat]||'#888'}"></div></div></div>`).join('');
+  const monthData=[];
+  for(let i=5;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);const t=expenses.filter(e=>{const ed=new Date(e.date+'T00:00:00');return ed.getMonth()===d.getMonth()&&ed.getFullYear()===d.getFullYear()}).reduce((s,e)=>s+toEUR(e.amount,e.currency),0);monthData.push({label:d.toLocaleString('en-US',{month:'short'}),total:t,forecast:false})}
+  for(let i=1;i<=3;i++){const d=new Date(now.getFullYear(),now.getMonth()+i,1);monthData.push({label:d.toLocaleString('en-US',{month:'short'}),total:recurringMonthly,forecast:true})}
+  const isDark=window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const barColor=isDark?'#d0d0d0':'#1a1a1a';
+  const fColor=isDark?'rgba(50,102,173,.5)':'rgba(50,102,173,.35)';
+  const gridColor=isDark?'rgba(255,255,255,.07)':'rgba(0,0,0,.06)';
+  const tickColor=isDark?'#888':'#aaa';
+  if(burnChartInst)burnChartInst.destroy();
+  burnChartInst=new Chart(document.getElementById('burnChart'),{type:'bar',data:{labels:monthData.map(m=>m.label),datasets:[{data:monthData.map(m=>parseFloat(m.total.toFixed(2))),backgroundColor:monthData.map(m=>m.forecast?fColor:barColor),borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>(monthData[ctx.dataIndex].forecast?'~':'')+fmtEUR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{color:tickColor,font:{size:11}},border:{display:false}},y:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:11},callback:v=>'€'+Math.round(v)},border:{display:false}}}}});
+  const vendorTotals={};expenses.forEach(e=>{vendorTotals[e.vendor]=(vendorTotals[e.vendor]||0)+toEUR(e.amount,e.currency)});
+  const topVendors=Object.entries(vendorTotals).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const maxV=Math.max(...topVendors.map(v=>v[1]),1);
+  document.getElementById('vendor-bars').innerHTML=topVendors.map(([name,total])=>`<div class="cat-bar-wrap"><div class="cat-bar-label"><span>${name}</span><span>${fmtEUR(total)}</span></div><div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.round(total/maxV*100)}%;background:#3266ad"></div></div></div>`).join('');
+  const forecastMonths=[];
+  for(let i=1;i<=3;i++){const d=new Date(now.getFullYear(),now.getMonth()+i,1);forecastMonths.push({label:d.toLocaleString('en-US',{month:'long',year:'numeric'}),total:recurringMonthly})}
+  const maxF=Math.max(...forecastMonths.map(m=>m.total),1);
+  document.getElementById('forecast-bars').innerHTML=forecastMonths.map(m=>`<div class="cat-bar-wrap"><div class="cat-bar-label"><span>${m.label}</span><span style="color:#3266ad;font-weight:500;">${fmtEUR(m.total)}</span></div><div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.round(m.total/maxF*100)}%;background:rgba(50,102,173,.4)"></div></div></div>`).join('')+`<p style="font-size:11px;color:var(--text3);margin-top:10px;">Based on ${recurring.length} recurring expense${recurring.length!==1?'s':''}. One-off costs excluded.</p>`;
+}
+
+// ════════════════════════════════════════════
+// Expenses list
+// ════════════════════════════════════════════
+function renderExpenses(){
+  const expenses=loadExpenses();const wrap=document.getElementById('expense-list-wrap');
+  if(!expenses.length){wrap.innerHTML='<div class="empty-state">No expenses yet — add your first one.</div>';return}
+  wrap.innerHTML=`<table class="expense-table"><thead><tr><th class="col-vendor">Vendor</th><th class="col-cat col-cat-th">Category</th><th class="col-date col-date-th">Date</th><th class="col-amount right">Amount</th><th class="col-del"></th></tr></thead><tbody>${expenses.map(e=>`<tr><td class="col-vendor"><div class="vendor-name">${e.vendor}</div>${e.note?`<div class="note-text">${e.note}</div>`:''} ${e.recurring?`<div class="recurring-row"><span class="recurring-dot"></span>Recurring</div>`:''}</td><td class="col-cat"><span class="cat-badge ${catClass[e.category]||'cat-other'}">${catLabel[e.category]||e.category}</span></td><td class="col-date" style="color:var(--text2);font-size:12px;">${e.date}</td><td class="col-amount amount-col">${fmtCur(e.amount,e.currency)}</td><td class="col-del"><button class="delete-btn" onclick="deleteExpense('${e.id}')" title="Delete"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1.5 1.5l9 9M10.5 1.5l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button></td></tr>`).join('')}</tbody></table>`;
+}
+
+// ════════════════════════════════════════════
+// Recurring view
+// ════════════════════════════════════════════
+function renderRecurring(){
+  const overrides=loadOverrides();const seen=new Set();const items=[];
+  for(const e of loadExpenses()){if(!e.recurring||seen.has(e.vendor))continue;seen.add(e.vendor);const ov=overrides[e.vendor];items.push({vendor:e.vendor,amount:ov?ov.amount:e.amount,currency:ov?ov.currency:e.currency,category:ov?ov.category:e.category,hasOverride:!!ov,effectiveFrom:ov?ov.effectiveFrom:null})}
+  const wrap=document.getElementById('recurring-wrap');
+  if(!items.length){wrap.innerHTML='<div class="empty-state">No recurring expenses tagged yet.</div>';return}
+  const total=items.reduce((s,e)=>s+toEUR(e.amount,e.currency),0);
+  wrap.innerHTML=`<div class="stat-card" style="display:inline-block;min-width:200px;margin-bottom:20px;"><div class="stat-label">Monthly recurring</div><div class="stat-value">${fmtEUR(total)}</div><div class="stat-sub">${items.length} active subscription${items.length!==1?'s':''}</div></div>${items.map(e=>`<div class="recurring-item"><div class="rec-info"><div class="rec-name">${e.vendor}${e.hasOverride?` <span style="font-size:10px;color:var(--accent);font-weight:400;">updated from ${e.effectiveFrom}</span>`:''}</div><div class="rec-meta">${catLabel[e.category]||e.category} · renews monthly</div></div><div style="display:flex;align-items:center;gap:10px;flex-shrink:0;"><span class="rec-amount">${fmtCur(e.amount,e.currency)}</span><button class="edit-btn" onclick="openEditRec('${e.vendor.replace(/'/g,"\\'")}')">Edit</button></div></div>`).join('')}`;
+}
+
+// ════════════════════════════════════════════
+// Settings view
+// ════════════════════════════════════════════
+function renderSettings(){
+  const vendors=loadVendors();const proj=getActiveProject();
+  document.getElementById('active-project-display').textContent=proj?proj.name:'None';
+  document.getElementById('sheet-url-display').textContent=proj&&proj.sheetId?'ID: '+proj.sheetId.substring(0,28)+'…':'Not yet created';
+  document.getElementById('vendor-mgmt').innerHTML=vendors.length===0?'<p style="font-size:13px;color:var(--text2);padding:8px 0;">No vendors yet.</p>':vendors.map(v=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:.5px solid var(--border);font-size:13px;"><span>${v}</span><button onclick="removeVendor('${v.replace(/'/g,"\\'")}');" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:2px 6px;">✕</button></div>`).join('');
+}
+function addVendor(){const val=document.getElementById('new-vendor-input').value.trim();if(!val)return;const vendors=loadVendors();vendors.unshift(val);saveVendors(vendors);document.getElementById('new-vendor-input').value='';renderSettings()}
+function removeVendor(name){saveVendors(loadVendors().filter(v=>v!==name));renderSettings()}
+
+function confirmReset(){
+  if(!confirm('Clear all local data? Your Google Sheet data is safe — this just clears the local cache.'))return;
+  localStorage.removeItem(SK);localStorage.removeItem(VK);localStorage.removeItem(RK);
+  renderCurrent();
+}
+
+function exportData(){
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({expenses:loadExpenses(),vendors:loadVendors(),overrides:loadOverrides()},null,2)],{type:'application/json'}));a.download='expenses-backup.json';a.click();
+}
+
+document.addEventListener('click',e=>{if(!e.target.closest('.field-wrap'))document.getElementById('autocomplete').style.display='none'});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    if(document.getElementById('edit-rec-overlay').classList.contains('open')){closeEditRec();return}
+    if(document.getElementById('modal-overlay').classList.contains('open')){closeModal();return}
+    if(document.getElementById('project-overlay').classList.contains('open')){closeProjectModal();return}
+    if(document.getElementById('sheet-settings-overlay').classList.contains('open')){closeSheetSettings();return}
+  }
+});
+</script>
+</body>
+</html>
