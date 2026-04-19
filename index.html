@@ -491,51 +491,61 @@ let tokenClient=null, accessToken=null, tokenExpiry=0;
 
 function isConfigured(){return GOOGLE_CLIENT_ID && GOOGLE_CLIENT_ID !== 'YOUR_GOOGLE_CLIENT_ID'}
 
+let gisReady=false, pendingSignIn=false;
+
 window.onload=function(){
   if(!isConfigured()){
     document.getElementById('config-warning').style.display='block';
     document.getElementById('auth-screen').classList.remove('hidden');
     return;
   }
-  const saved=loadLS(TK,null);
-  if(saved && saved.token && Date.now()<saved.expiry){
-    accessToken=saved.token; tokenExpiry=saved.expiry;
-    // Restore cached user info immediately, then refresh from API
-    const cachedUser=loadLS('exp_user_v1',null);
-    if(cachedUser){
-      document.getElementById('user-name').textContent=cachedUser.name||'Signed in';
-      document.getElementById('user-avatar').textContent=(cachedUser.name||'?')[0].toUpperCase();
-    }
-    initApp();
-  } else {
-    document.getElementById('auth-screen').classList.remove('hidden');
-    loadGIS();
-  }
+  // Always load GIS first — needed for both first-time sign-in and token refresh
+  loadGIS();
 };
 
 function loadGIS(){
   const s=document.createElement('script');
   s.src='https://accounts.google.com/gsi/client';
-  s.onload=()=>{
+  s.onload=function(){
     tokenClient=google.accounts.oauth2.initTokenClient({
       client_id:GOOGLE_CLIENT_ID, scope:SCOPES,
-      callback:(resp)=>{
-        if(resp.error){setSyncStatus('error','Auth failed');return}
+      callback:function(resp){
+        if(resp.error){setSyncStatus('error','Auth failed: '+resp.error);return;}
         accessToken=resp.access_token;
         tokenExpiry=Date.now()+(resp.expires_in-60)*1000;
         saveLS(TK,{token:accessToken,expiry:tokenExpiry});
         fetchUserInfo();
+        document.getElementById('auth-screen').classList.add('hidden');
         initApp();
       }
     });
+    gisReady=true;
+    // Now check if we have a saved token
+    const saved=loadLS(TK,null);
+    if(saved && saved.token && Date.now()<saved.expiry){
+      accessToken=saved.token; tokenExpiry=saved.expiry;
+      const cachedUser=loadLS('exp_user_v1',null);
+      if(cachedUser){
+        document.getElementById('user-name').textContent=cachedUser.name||'Signed in';
+        document.getElementById('user-avatar').textContent=cachedUser.name[0].toUpperCase();
+      }
+      fetchUserInfo();
+      document.getElementById('auth-screen').classList.add('hidden');
+      initApp();
+    } else {
+      document.getElementById('auth-screen').classList.remove('hidden');
+      // If signIn() was called before GIS was ready, fire it now
+      if(pendingSignIn){pendingSignIn=false;tokenClient.requestAccessToken({prompt:''});}
+    }
   };
+  s.onerror=function(){document.getElementById('auth-screen').classList.remove('hidden');};
   document.head.appendChild(s);
 }
 
 function signIn(){
-  if(!isConfigured()){alert('Please configure your Google Client ID first. See SETUP.md');return}
-  if(!tokenClient){loadGIS();setTimeout(()=>tokenClient&&tokenClient.requestAccessToken(),1500)}
-  else tokenClient.requestAccessToken();
+  if(!isConfigured()){alert('Please configure your Google Client ID first. See SETUP.md');return;}
+  if(!gisReady){pendingSignIn=true;return;}
+  tokenClient.requestAccessToken({prompt:''});
 }
 
 function signOut(){
@@ -550,7 +560,19 @@ function signOut(){
 
 function ensureToken(){
   if(accessToken && Date.now()<tokenExpiry) return Promise.resolve();
-  return new Promise(res=>{tokenClient.requestAccessToken();setTimeout(res,2000)});
+  if(!tokenClient) return Promise.reject(new Error('Not signed in'));
+  return new Promise((res,rej)=>{
+    const prev=tokenClient.callback;
+    tokenClient.callback=function(resp){
+      tokenClient.callback=prev;
+      if(resp.error){rej(new Error(resp.error));return;}
+      accessToken=resp.access_token;
+      tokenExpiry=Date.now()+(resp.expires_in-60)*1000;
+      saveLS(TK,{token:accessToken,expiry:tokenExpiry});
+      res();
+    };
+    tokenClient.requestAccessToken({prompt:''});
+  });
 }
 
 // ════════════════════════════════════════════
