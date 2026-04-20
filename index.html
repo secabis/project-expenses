@@ -171,21 +171,6 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 .btn-danger{background:none;border:.5px solid rgba(204,68,68,.4);border-radius:var(--radius);padding:7px 14px;font-size:13px;color:#cc4444;cursor:pointer;font-family:inherit;white-space:nowrap}
 .btn-danger:hover{background:rgba(204,68,68,.06)}
 .sheet-url-note{font-size:11px;color:var(--text2);margin-top:6px;line-height:1.5}
-/* Sheet picker */
-.picker-tab-row{display:flex;gap:0;margin-bottom:12px;border:.5px solid var(--border2);border-radius:var(--radius);overflow:hidden}
-.picker-tab{flex:1;padding:8px;font-size:12px;font-weight:500;text-align:center;cursor:pointer;border:none;background:none;color:var(--text2);font-family:inherit;transition:background .15s,color .15s}
-.picker-tab.active{background:var(--text);color:var(--bg)}
-.sheet-list{border:.5px solid var(--border2);border-radius:var(--radius);overflow:hidden;max-height:220px;overflow-y:auto}
-.sheet-list-item{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;font-size:13px;cursor:pointer;border-bottom:.5px solid var(--border);transition:background .1s;gap:8px}
-.sheet-list-item:last-child{border-bottom:none}
-.sheet-list-item:hover{background:var(--bg2)}
-.sheet-list-item.selected{background:rgba(50,102,173,.08)}
-.sheet-item-name{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
-.sheet-item-date{font-size:11px;color:var(--text3);white-space:nowrap;flex-shrink:0}
-.sheet-pick-check{color:var(--accent);flex-shrink:0}
-.picker-search{width:100%;padding:8px 10px;font-size:13px;border:none;border-bottom:.5px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit;outline:none}
-.picker-loading{padding:24px;text-align:center;font-size:13px;color:var(--text3)}
-.picker-empty{padding:20px;text-align:center;font-size:13px;color:var(--text3)}
 /* Responsive */
 @media(max-width:768px){
   .sidebar{position:fixed;top:0;left:0;bottom:0;z-index:100;transform:translateX(-100%);box-shadow:4px 0 24px rgba(0,0,0,.12)}
@@ -408,48 +393,19 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 
 <!-- New Project Modal -->
 <div class="modal-overlay" id="project-overlay" onclick="if(event.target===this)closeProjectModal()">
-  <div class="modal" onclick="event.stopPropagation()" style="max-width:460px;">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:440px;">
     <div class="modal-drag"></div>
     <div class="modal-title" id="project-modal-title">New project</div>
     <div class="field"><label>Project name</label><input type="text" id="proj-name" placeholder="e.g. D365 Navigator"/></div>
     <div class="field">
-      <label>Google Sheet <span style="font-weight:400;opacity:.55;letter-spacing:0;text-transform:none;">— where data is stored</span></label>
-      <div class="picker-tab-row">
-        <button class="picker-tab active" onclick="switchPickerTab('browse',this)">Browse my Drive</button>
-        <button class="picker-tab" onclick="switchPickerTab('id',this)">Paste Sheet ID</button>
-        <button class="picker-tab" onclick="switchPickerTab('new',this)">Create new</button>
-      </div>
-      <!-- Browse tab -->
-      <div id="picker-browse">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;line-height:1.5;">Shows sheets created by this app. For existing sheets, use the Paste Sheet ID tab.</div>
-        <div class="sheet-list" id="picker-list">
-          <div class="picker-loading" id="picker-loading">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="animation:spin 1s linear infinite;display:inline-block;margin-right:6px;vertical-align:middle"><path d="M14 8A6 6 0 1 1 8 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-            Loading your sheets…
-          </div>
-        </div>
-        <div style="margin-top:6px;display:flex;align-items:center;gap:8px;">
-          <input type="text" id="picker-search" placeholder="Search…" style="flex:1;padding:7px 10px;font-size:13px;border:.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-family:inherit;outline:none;" oninput="searchSheets()" onfocus="this.select()"/>
-          <button class="sync-btn" onclick="loadSheetList()" title="Refresh">
-            <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M12 2v4H8M1 11V7h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.5 4.5A5 5 0 0 1 11 6M10.5 8.5A5 5 0 0 1 2 7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-            Refresh
-          </button>
-        </div>
-        <div id="picker-selected-name" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(50,102,173,.07);border:.5px solid rgba(50,102,173,.2);border-radius:var(--radius);font-size:12px;color:var(--accent);">
-          ✓ <span id="picker-selected-label"></span>
-        </div>
-      </div>
-      <!-- ID tab -->
-      <div id="picker-id" style="display:none;">
-        <input type="text" id="proj-sheet-id" placeholder="Paste Sheet ID…" style="width:100%;padding:9px 11px;font-size:14px;border:.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-family:inherit;outline:none;"/>
-        <div class="sheet-url-note">The Sheet ID is the long string in the URL between /d/ and /edit</div>
-      </div>
-      <!-- New tab -->
-      <div id="picker-new" style="display:none;">
-        <div style="padding:14px;background:var(--bg2);border-radius:var(--radius);border:.5px solid var(--border2);font-size:13px;color:var(--text2);line-height:1.6;">
-          A new Google Sheet will be created in your Drive automatically when you save the project.
-        </div>
-      </div>
+      <label>Google Sheet ID <span style="font-weight:400;opacity:.55;letter-spacing:0;text-transform:none;">— leave blank to create a new sheet</span></label>
+      <input type="text" id="proj-sheet-id" placeholder="Paste Sheet ID or leave blank" inputmode="url" oninput="document.getElementById('proj-tab-field').style.display=this.value.trim()?'block':'none'"/>
+      <div class="sheet-url-note">Find the ID in the sheet URL: docs.google.com/spreadsheets/d/<strong>SHEET_ID</strong>/edit</div>
+    </div>
+    <div class="field" id="proj-tab-field" style="display:none;">
+      <label>Sheet tab name <span style="font-weight:400;opacity:.55;letter-spacing:0;text-transform:none;">— which tab holds the data</span></label>
+      <input type="text" id="proj-tab-name" placeholder="e.g. Sheet1 or project name"/>
+      <div class="sheet-url-note">The tab name is shown at the bottom of Google Sheets. Leave blank to use the first tab.</div>
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeProjectModal()">Cancel</button>
@@ -460,38 +416,17 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 
 <!-- Sheet Settings Modal -->
 <div class="modal-overlay" id="sheet-settings-overlay" onclick="if(event.target===this)closeSheetSettings()">
-  <div class="modal" onclick="event.stopPropagation()" style="max-width:460px;">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:440px;">
     <div class="modal-drag"></div>
     <div class="modal-title">Change sheet</div>
     <div class="field">
-      <label>Google Sheet</label>
-      <div class="picker-tab-row">
-        <button class="picker-tab active" onclick="switchSettingsTab('browse',this)">Browse my Drive</button>
-        <button class="picker-tab" onclick="switchSettingsTab('id',this)">Paste Sheet ID</button>
-      </div>
-      <div id="ss-picker-browse">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;line-height:1.5;">Shows sheets created by this app. For existing sheets, use the Paste Sheet ID tab.</div>
-        <div class="sheet-list" id="ss-picker-list">
-          <div class="picker-loading" id="ss-picker-loading">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="animation:spin 1s linear infinite;display:inline-block;margin-right:6px;vertical-align:middle"><path d="M14 8A6 6 0 1 1 8 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-            Loading your sheets…
-          </div>
-        </div>
-        <div style="margin-top:6px;display:flex;align-items:center;gap:8px;">
-          <input type="text" id="ss-picker-search" placeholder="Search…" style="flex:1;padding:7px 10px;font-size:13px;border:.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-family:inherit;outline:none;" oninput="searchSheetsSS()"/>
-          <button class="sync-btn" onclick="loadSheetListSS()">
-            <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M12 2v4H8M1 11V7h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.5 4.5A5 5 0 0 1 11 6M10.5 8.5A5 5 0 0 1 2 7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-            Refresh
-          </button>
-        </div>
-        <div id="ss-selected-name" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(50,102,173,.07);border:.5px solid rgba(50,102,173,.2);border-radius:var(--radius);font-size:12px;color:var(--accent);">
-          ✓ <span id="ss-selected-label"></span>
-        </div>
-      </div>
-      <div id="ss-picker-id" style="display:none;">
-        <input type="text" id="ss-sheet-id" placeholder="Paste Sheet ID" style="width:100%;padding:9px 11px;font-size:14px;border:.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-family:inherit;outline:none;"/>
-        <div class="sheet-url-note">Find it in the URL: docs.google.com/spreadsheets/d/<strong>[ID]</strong>/edit</div>
-      </div>
+      <label>Google Sheet ID</label>
+      <input type="text" id="ss-sheet-id" placeholder="Paste Sheet ID" inputmode="url"/>
+      <div class="sheet-url-note">Find it in the URL: docs.google.com/spreadsheets/d/<strong>SHEET_ID</strong>/edit</div>
+    </div>
+    <div class="field">
+      <label>Tab name <span style="font-weight:400;opacity:.55;letter-spacing:0;text-transform:none;">— leave blank to use first tab</span></label>
+      <input type="text" id="ss-tab-name" placeholder="e.g. Sheet1"/>
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeSheetSettings()">Cancel</button>
@@ -681,26 +616,26 @@ async function gFetch(url,opts={}){
   return r.json();
 }
 
-// List sheets created by this app (drive.file scope covers these)
-async function listDriveSheets(){
-  const r=await gFetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent("mimeType='application/vnd.google-apps.spreadsheet' and trashed=false")}&fields=files(id,name,modifiedTime)&orderBy=modifiedTime%20desc&pageSize=50`);
-  return r.files||[];
-}
-
 const HEADER=['ID','Vendor','Note','Amount','Currency','Category','Date','Recurring'];
 
 async function ensureSheet(project){
+  // No sheet ID → create a brand new spreadsheet
   if(!project.sheetId){
     setSyncStatus('syncing','Creating spreadsheet…');
-    const resp=await gFetch('https://sheets.googleapis.com/v4/spreadsheets',{method:'POST',body:JSON.stringify({properties:{title:'Project Expenses — '+project.name},sheets:[{properties:{title:project.name}}]})});
-    project.sheetId=resp.spreadsheetId;project.sheetName=project.name;updateProject(project);await writeRow(project.sheetId,project.sheetName,1,HEADER);return project;
+    const resp=await gFetch('https://sheets.googleapis.com/v4/spreadsheets',{
+      method:'POST',
+      body:JSON.stringify({properties:{title:'Project Expenses — '+project.name},sheets:[{properties:{title:project.name}}]})
+    });
+    project.sheetId=resp.spreadsheetId;
+    project.sheetName=project.name;
+    updateProject(project);
+    await writeRow(project.sheetId,project.sheetName,1,HEADER);
+    return project;
   }
-  const meta=await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${project.sheetId}?fields=sheets.properties`);
-  const exists=meta.sheets.some(s=>s.properties.title===project.name);
-  if(!exists){
-    await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${project.sheetId}:batchUpdate`,{method:'POST',body:JSON.stringify({requests:[{addSheet:{properties:{title:project.name}}}]})});
-    project.sheetName=project.name;updateProject(project);await writeRow(project.sheetId,project.sheetName,1,HEADER);
-  } else {project.sheetName=project.name}
+  // Sheet ID provided — use it as-is, don't try to read/modify it yet
+  // sheetName already set from modal (tab name field), or defaults to project name
+  if(!project.sheetName)project.sheetName=project.name;
+  updateProject(project);
   return project;
 }
 
@@ -783,156 +718,47 @@ function openNewProject(){
   document.getElementById('project-modal-title').textContent='New project';
   document.getElementById('proj-save-btn').textContent='Create project';
   document.getElementById('proj-name').value='';
-  if(document.getElementById('proj-sheet-id'))document.getElementById('proj-sheet-id').value='';
-  pickerSelectedId=null;pickerSelectedName=null;
-  document.getElementById('picker-selected-name').style.display='none';
-  // Reset to browse tab
-  switchPickerTab('browse',document.querySelector('.picker-tab-row .picker-tab'));
+  document.getElementById('proj-sheet-id').value='';
+  document.getElementById('proj-tab-name').value='';
+  document.getElementById('proj-tab-field').style.display='none';
   document.getElementById('project-overlay').classList.add('open');
-  setTimeout(()=>{document.getElementById('proj-name').focus();loadSheetList()},80);
+  setTimeout(()=>document.getElementById('proj-name').focus(),80);
   closeSidebar();
 }
 function closeProjectModal(){document.getElementById('project-overlay').classList.remove('open')}
 
-// ── Sheet picker state ────────────────────
-let pickerSelectedId=null,pickerSelectedName=null;
-let pickerAllSheets=[],pickerCurrentTab='browse';
-let ssSelectedId=null,ssSelectedName=null;
-let ssAllSheets=[],ssCurrentTab='browse';
-
-function switchPickerTab(tab,btn){
-  pickerCurrentTab=tab;
-  document.querySelectorAll('.picker-tab-row .picker-tab').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('picker-browse').style.display=tab==='browse'?'block':'none';
-  document.getElementById('picker-id').style.display=tab==='id'?'block':'none';
-  document.getElementById('picker-new').style.display=tab==='new'?'block':'none';
-}
-
-function switchSettingsTab(tab,btn){
-  ssCurrentTab=tab;
-  document.querySelectorAll('#sheet-settings-overlay .picker-tab').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('ss-picker-browse').style.display=tab==='browse'?'block':'none';
-  document.getElementById('ss-picker-id').style.display=tab==='id'?'block':'none';
-}
-
-async function loadSheetList(){
-  const list=document.getElementById('picker-list');
-  list.innerHTML='<div class="picker-loading"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="animation:spin 1s linear infinite;display:inline-block;margin-right:6px;vertical-align:middle"><path d="M14 8A6 6 0 1 1 8 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Loading…</div>';
-  try{
-    pickerAllSheets=await listDriveSheets();
-    renderPickerList(pickerAllSheets);
-  }catch(e){
-    list.innerHTML='<div class="picker-empty">Could not load sheets. Use the Paste Sheet ID tab instead.</div>';
-  }
-}
-
-async function loadSheetListSS(){
-  const list=document.getElementById('ss-picker-list');
-  list.innerHTML='<div class="picker-loading"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="animation:spin 1s linear infinite;display:inline-block;margin-right:6px;vertical-align:middle"><path d="M14 8A6 6 0 1 1 8 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Loading…</div>';
-  try{
-    ssAllSheets=await listDriveSheets();
-    renderSSList(ssAllSheets);
-  }catch(e){
-    list.innerHTML='<div class="picker-empty">Could not load sheets. Use the Paste Sheet ID tab instead.</div>';
-  }
-}
-
-function renderPickerList(sheets){
-  const list=document.getElementById('picker-list');
-  if(!sheets.length){list.innerHTML='<div class="picker-empty">No sheets found.</div>';return}
-  list.innerHTML=sheets.map(s=>{
-    const date=s.modifiedTime?new Date(s.modifiedTime).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
-    const sel=pickerSelectedId===s.id;
-    return`<div class="sheet-list-item${sel?' selected':''}" onclick="selectSheet('${s.id}','${s.name.replace(/'/g,"\\'")}')">
-      <span class="sheet-item-name">${s.name}</span>
-      <span class="sheet-item-date">${date}</span>
-      ${sel?'<svg class="sheet-pick-check" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7l4 4 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
-    </div>`;
-  }).join('');
-}
-
-function renderSSList(sheets){
-  const list=document.getElementById('ss-picker-list');
-  if(!sheets.length){list.innerHTML='<div class="picker-empty">No sheets found.</div>';return}
-  list.innerHTML=sheets.map(s=>{
-    const date=s.modifiedTime?new Date(s.modifiedTime).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
-    const sel=ssSelectedId===s.id;
-    return`<div class="sheet-list-item${sel?' selected':''}" onclick="selectSheetSS('${s.id}','${s.name.replace(/'/g,"\\'")}')">
-      <span class="sheet-item-name">${s.name}</span>
-      <span class="sheet-item-date">${date}</span>
-      ${sel?'<svg class="sheet-pick-check" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7l4 4 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
-    </div>`;
-  }).join('');
-}
-
-function selectSheet(id,name){
-  pickerSelectedId=id;pickerSelectedName=name;
-  document.getElementById('picker-selected-label').textContent=name;
-  document.getElementById('picker-selected-name').style.display='block';
-  renderPickerList(pickerAllSheets.filter(s=>{const q=document.getElementById('picker-search').value.toLowerCase();return !q||s.name.toLowerCase().includes(q)}));
-}
-
-function selectSheetSS(id,name){
-  ssSelectedId=id;ssSelectedName=name;
-  document.getElementById('ss-selected-label').textContent=name;
-  document.getElementById('ss-selected-name').style.display='block';
-  renderSSList(ssAllSheets.filter(s=>{const q=document.getElementById('ss-picker-search').value.toLowerCase();return !q||s.name.toLowerCase().includes(q)}));
-}
-
-function searchSheets(){
-  const q=document.getElementById('picker-search').value.toLowerCase();
-  renderPickerList(pickerAllSheets.filter(s=>!q||s.name.toLowerCase().includes(q)));
-}
-
-function searchSheetsSS(){
-  const q=document.getElementById('ss-picker-search').value.toLowerCase();
-  renderSSList(ssAllSheets.filter(s=>!q||s.name.toLowerCase().includes(q)));
-}
-
 async function saveProject(){
   const name=document.getElementById('proj-name').value.trim();
   if(!name){alert('Enter a project name.');return}
+  const sheetId=document.getElementById('proj-sheet-id').value.trim()||null;
+  const tabName=document.getElementById('proj-tab-name').value.trim()||null;
   const btn=document.getElementById('proj-save-btn');btn.disabled=true;btn.textContent='Creating…';
-  let sheetId=null;
-  if(pickerCurrentTab==='browse'){
-    sheetId=pickerSelectedId||null;
-  } else if(pickerCurrentTab==='id'){
-    sheetId=document.getElementById('proj-sheet-id').value.trim()||null;
-    if(!sheetId){alert('Please paste a Sheet ID.');btn.disabled=false;btn.textContent='Create project';return}
-  }
-  // pickerCurrentTab==='new' → sheetId stays null → auto-created
-  const proj={id:Date.now().toString(),name,sheetId,sheetName:name};
-  setSyncStatus('syncing','Setting up sheet…');
+  const proj={id:Date.now().toString(),name,sheetId,sheetName:tabName||name};
+  setSyncStatus('syncing',sheetId?'Connecting to sheet…':'Creating spreadsheet…');
   try{
-    const ready=await ensureSheet(proj);const ps=loadProjects();ps.push(ready);saveProjects(ps);
-    setActiveProject(ready);saveExpenses([]);saveOverrides([]);renderProjectList();closeProjectModal();
-    setSyncStatus('ok','Project created');renderCurrent();
+    const ready=await ensureSheet(proj);
+    const ps=loadProjects();ps.push(ready);saveProjects(ps);
+    setActiveProject(ready);saveExpenses([]);saveOverrides({});
+    renderProjectList();closeProjectModal();
+    setSyncStatus('ok','Project created');
+    syncFromSheet();renderCurrent();
   }catch(e){setSyncStatus('error','Failed: '+e.message);alert('Failed: '+e.message)}
   finally{btn.disabled=false;btn.textContent='Create project'}
 }
 function openSheetSettings(){
   const p=getActiveProject();
-  ssSelectedId=p?p.sheetId||null:null;ssSelectedName=null;
-  document.getElementById('ss-selected-name').style.display='none';
-  // reset to browse tab
-  switchSettingsTab('browse',document.querySelector('#sheet-settings-overlay .picker-tab'));
+  document.getElementById('ss-sheet-id').value=p?p.sheetId||'':'';
+  document.getElementById('ss-tab-name').value=p?p.sheetName||'':'';
   document.getElementById('sheet-settings-overlay').classList.add('open');
-  setTimeout(()=>loadSheetListSS(),80);
 }
 function closeSheetSettings(){document.getElementById('sheet-settings-overlay').classList.remove('open')}
 async function saveSheetSettings(){
   const p=getActiveProject();if(!p)return;
-  let sheetId=null;
-  if(ssCurrentTab==='browse'){
-    sheetId=ssSelectedId||null;
-    if(!sheetId){alert('Please select a sheet from the list.');return}
-  } else {
-    sheetId=document.getElementById('ss-sheet-id').value.trim()||null;
-    if(!sheetId){alert('Please paste a Sheet ID.');return}
-  }
+  const sheetId=document.getElementById('ss-sheet-id').value.trim();
+  if(!sheetId){alert('Please paste a Sheet ID.');return}
+  const tabName=document.getElementById('ss-tab-name').value.trim();
   p.sheetId=sheetId;
+  p.sheetName=tabName||p.name;
   updateProject(p);closeSheetSettings();syncFromSheet();
 }
 
