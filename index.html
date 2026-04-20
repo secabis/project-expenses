@@ -421,6 +421,7 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
       </div>
       <!-- Browse tab -->
       <div id="picker-browse">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;line-height:1.5;">Shows sheets created by this app. For existing sheets, use the Paste Sheet ID tab.</div>
         <div class="sheet-list" id="picker-list">
           <div class="picker-loading" id="picker-loading">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="animation:spin 1s linear infinite;display:inline-block;margin-right:6px;vertical-align:middle"><path d="M14 8A6 6 0 1 1 8 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
@@ -469,6 +470,7 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
         <button class="picker-tab" onclick="switchSettingsTab('id',this)">Paste Sheet ID</button>
       </div>
       <div id="ss-picker-browse">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;line-height:1.5;">Shows sheets created by this app. For existing sheets, use the Paste Sheet ID tab.</div>
         <div class="sheet-list" id="ss-picker-list">
           <div class="picker-loading" id="ss-picker-loading">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="animation:spin 1s linear infinite;display:inline-block;margin-right:6px;vertical-align:middle"><path d="M14 8A6 6 0 1 1 8 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
@@ -501,7 +503,7 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 const GOOGLE_CLIENT_ID = '606649631097-dg0baro8puc6klctrhgcu4rl57rmo9hl.apps.googleusercontent.com';
-const SCOPES='https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.metadata.readonly';
+const SCOPES='https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file';
 
 /* ════════════════════════════════════════════════════════════════
    DESIGN SYSTEM — keep all new UI consistent with these tokens
@@ -679,11 +681,9 @@ async function gFetch(url,opts={}){
   return r.json();
 }
 
-// List all Google Sheets in the user's Drive (for the picker)
-async function listDriveSheets(query=''){
-  let q="mimeType='application/vnd.google-apps.spreadsheet' and trashed=false";
-  if(query)q+=` and name contains '${query.replace(/'/g,"\\'")}'`;
-  const r=await gFetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,modifiedTime)&orderBy=modifiedTime desc&pageSize=30`);
+// List sheets created by this app (drive.file scope covers these)
+async function listDriveSheets(){
+  const r=await gFetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent("mimeType='application/vnd.google-apps.spreadsheet' and trashed=false")}&fields=files(id,name,modifiedTime)&orderBy=modifiedTime%20desc&pageSize=50`);
   return r.files||[];
 }
 
@@ -824,17 +824,7 @@ async function loadSheetList(){
     pickerAllSheets=await listDriveSheets();
     renderPickerList(pickerAllSheets);
   }catch(e){
-    const is403=e.message&&e.message.includes('403');
-    list.innerHTML=`<div class="picker-empty" style="line-height:1.6;">
-      ${is403
-        ? '⚠️ Permission not granted yet.<br><span style="font-size:11px;">Sign out and sign back in to approve Drive access, or use the <strong>Paste Sheet ID</strong> tab.</span>'
-        : 'Could not load sheets. Try refreshing.'}
-    </div>`;
-    // Auto-switch to ID tab if 403 so user isn't stuck
-    if(is403){
-      const tabs=document.querySelectorAll('.picker-tab-row .picker-tab');
-      switchPickerTab('id',tabs[1]);
-    }
+    list.innerHTML='<div class="picker-empty">Could not load sheets. Use the Paste Sheet ID tab instead.</div>';
   }
 }
 
@@ -845,16 +835,7 @@ async function loadSheetListSS(){
     ssAllSheets=await listDriveSheets();
     renderSSList(ssAllSheets);
   }catch(e){
-    const is403=e.message&&e.message.includes('403');
-    list.innerHTML=`<div class="picker-empty" style="line-height:1.6;">
-      ${is403
-        ? '⚠️ Permission not granted yet.<br><span style="font-size:11px;">Sign out and sign back in, or use <strong>Paste Sheet ID</strong>.</span>'
-        : 'Could not load sheets. Try refreshing.'}
-    </div>`;
-    if(is403){
-      const tabs=document.querySelectorAll('#sheet-settings-overlay .picker-tab');
-      switchSettingsTab('id',tabs[1]);
-    }
+    list.innerHTML='<div class="picker-empty">Could not load sheets. Use the Paste Sheet ID tab instead.</div>';
   }
 }
 
@@ -911,20 +892,24 @@ function searchSheetsSS(){
 }
 
 async function saveProject(){
-  const name=document.getElementById('proj-name').value.trim();if(!name){alert('Enter a project name.');return}
+  const name=document.getElementById('proj-name').value.trim();
+  if(!name){alert('Enter a project name.');return}
   const btn=document.getElementById('proj-save-btn');btn.disabled=true;btn.textContent='Creating…';
-  // Resolve sheet ID based on active tab
   let sheetId=null;
-  if(pickerCurrentTab==='browse'){sheetId=pickerSelectedId||null}
-  else if(pickerCurrentTab==='id'){sheetId=document.getElementById('proj-sheet-id').value.trim()||null}
-  // 'new' tab → sheetId stays null → auto-created
+  if(pickerCurrentTab==='browse'){
+    sheetId=pickerSelectedId||null;
+  } else if(pickerCurrentTab==='id'){
+    sheetId=document.getElementById('proj-sheet-id').value.trim()||null;
+    if(!sheetId){alert('Please paste a Sheet ID.');btn.disabled=false;btn.textContent='Create project';return}
+  }
+  // pickerCurrentTab==='new' → sheetId stays null → auto-created
   const proj={id:Date.now().toString(),name,sheetId,sheetName:name};
   setSyncStatus('syncing','Setting up sheet…');
   try{
     const ready=await ensureSheet(proj);const ps=loadProjects();ps.push(ready);saveProjects(ps);
-    setActiveProject(ready);saveExpenses([]);saveOverrides({});renderProjectList();closeProjectModal();
+    setActiveProject(ready);saveExpenses([]);saveOverrides([]);renderProjectList();closeProjectModal();
     setSyncStatus('ok','Project created');renderCurrent();
-  }catch(e){setSyncStatus('error','Failed: '+e.message)}
+  }catch(e){setSyncStatus('error','Failed: '+e.message);alert('Failed: '+e.message)}
   finally{btn.disabled=false;btn.textContent='Create project'}
 }
 function openSheetSettings(){
@@ -939,14 +924,15 @@ function openSheetSettings(){
 function closeSheetSettings(){document.getElementById('sheet-settings-overlay').classList.remove('open')}
 async function saveSheetSettings(){
   const p=getActiveProject();if(!p)return;
+  let sheetId=null;
   if(ssCurrentTab==='browse'){
-    if(!ssSelectedId){alert('Please select a sheet.');return}
-    p.sheetId=ssSelectedId;
+    sheetId=ssSelectedId||null;
+    if(!sheetId){alert('Please select a sheet from the list.');return}
   } else {
-    const id=document.getElementById('ss-sheet-id').value.trim();
-    if(!id){alert('Please enter a Sheet ID.');return}
-    p.sheetId=id;
+    sheetId=document.getElementById('ss-sheet-id').value.trim()||null;
+    if(!sheetId){alert('Please paste a Sheet ID.');return}
   }
+  p.sheetId=sheetId;
   updateProject(p);closeSheetSettings();syncFromSheet();
 }
 
