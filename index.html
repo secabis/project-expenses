@@ -648,11 +648,12 @@ function signIn(){
 }
 
 function signOut(){
-  if(accessToken)google.accounts.oauth2.revoke(accessToken);
-  localStorage.removeItem(TK);localStorage.removeItem('exp_user_v1');accessToken=null;
+  try{if(accessToken&&typeof google!=='undefined')google.accounts.oauth2.revoke(accessToken)}catch(e){}
+  localStorage.removeItem(TK);localStorage.removeItem('exp_user_v1');accessToken=null;tokenExpiry=0;
   document.getElementById('user-name').textContent='Not signed in';
   document.getElementById('user-avatar').textContent='?';
   document.getElementById('auth-screen').classList.remove('hidden');
+  loadGIS();
 }
 
 function ensureToken(){
