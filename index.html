@@ -674,7 +674,7 @@ async function fetchUserInfo(){
 async function gFetch(url,opts={}){
   await ensureToken();
   const r=await fetch(url,{...opts,headers:{...opts.headers,'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'}});
-  if(!r.ok){const e=await r.text();throw new Error(e)}
+  if(!r.ok){const e=await r.text();throw new Error(`${r.status}: ${e}`)}
   return r.json();
 }
 
@@ -822,7 +822,19 @@ async function loadSheetList(){
   try{
     pickerAllSheets=await listDriveSheets();
     renderPickerList(pickerAllSheets);
-  }catch(e){list.innerHTML='<div class="picker-empty">Could not load sheets — check permissions.</div>'}
+  }catch(e){
+    const is403=e.message&&e.message.includes('403');
+    list.innerHTML=`<div class="picker-empty" style="line-height:1.6;">
+      ${is403
+        ? '⚠️ Permission not granted yet.<br><span style="font-size:11px;">Sign out and sign back in to approve Drive access, or use the <strong>Paste Sheet ID</strong> tab.</span>'
+        : 'Could not load sheets. Try refreshing.'}
+    </div>`;
+    // Auto-switch to ID tab if 403 so user isn't stuck
+    if(is403){
+      const tabs=document.querySelectorAll('.picker-tab-row .picker-tab');
+      switchPickerTab('id',tabs[1]);
+    }
+  }
 }
 
 async function loadSheetListSS(){
@@ -831,7 +843,18 @@ async function loadSheetListSS(){
   try{
     ssAllSheets=await listDriveSheets();
     renderSSList(ssAllSheets);
-  }catch(e){list.innerHTML='<div class="picker-empty">Could not load sheets.</div>'}
+  }catch(e){
+    const is403=e.message&&e.message.includes('403');
+    list.innerHTML=`<div class="picker-empty" style="line-height:1.6;">
+      ${is403
+        ? '⚠️ Permission not granted yet.<br><span style="font-size:11px;">Sign out and sign back in, or use <strong>Paste Sheet ID</strong>.</span>'
+        : 'Could not load sheets. Try refreshing.'}
+    </div>`;
+    if(is403){
+      const tabs=document.querySelectorAll('#sheet-settings-overlay .picker-tab');
+      switchSettingsTab('id',tabs[1]);
+    }
+  }
 }
 
 function renderPickerList(sheets){
