@@ -73,6 +73,7 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 .sync-dot.ok{background:#639922}
 .sync-dot.error{background:#cc4444}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes spin{to{transform:rotate(360deg)}}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
 .modal-overlay.open{display:flex}
 .modal{background:var(--bg);border-radius:16px;border:.5px solid var(--border2);padding:24px 24px 28px;width:100%;max-width:480px;box-shadow:0 16px 60px rgba(0,0,0,.2);max-height:90dvh;overflow-y:auto}
@@ -170,6 +171,21 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 .btn-danger{background:none;border:.5px solid rgba(204,68,68,.4);border-radius:var(--radius);padding:7px 14px;font-size:13px;color:#cc4444;cursor:pointer;font-family:inherit;white-space:nowrap}
 .btn-danger:hover{background:rgba(204,68,68,.06)}
 .sheet-url-note{font-size:11px;color:var(--text2);margin-top:6px;line-height:1.5}
+/* Sheet picker */
+.picker-tab-row{display:flex;gap:0;margin-bottom:12px;border:.5px solid var(--border2);border-radius:var(--radius);overflow:hidden}
+.picker-tab{flex:1;padding:8px;font-size:12px;font-weight:500;text-align:center;cursor:pointer;border:none;background:none;color:var(--text2);font-family:inherit;transition:background .15s,color .15s}
+.picker-tab.active{background:var(--text);color:var(--bg)}
+.sheet-list{border:.5px solid var(--border2);border-radius:var(--radius);overflow:hidden;max-height:220px;overflow-y:auto}
+.sheet-list-item{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;font-size:13px;cursor:pointer;border-bottom:.5px solid var(--border);transition:background .1s;gap:8px}
+.sheet-list-item:last-child{border-bottom:none}
+.sheet-list-item:hover{background:var(--bg2)}
+.sheet-list-item.selected{background:rgba(50,102,173,.08)}
+.sheet-item-name{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.sheet-item-date{font-size:11px;color:var(--text3);white-space:nowrap;flex-shrink:0}
+.sheet-pick-check{color:var(--accent);flex-shrink:0}
+.picker-search{width:100%;padding:8px 10px;font-size:13px;border:none;border-bottom:.5px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit;outline:none}
+.picker-loading{padding:24px;text-align:center;font-size:13px;color:var(--text3)}
+.picker-empty{padding:20px;text-align:center;font-size:13px;color:var(--text3)}
 /* Responsive */
 @media(max-width:768px){
   .sidebar{position:fixed;top:0;left:0;bottom:0;z-index:100;transform:translateX(-100%);box-shadow:4px 0 24px rgba(0,0,0,.12)}
@@ -392,14 +408,47 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 
 <!-- New Project Modal -->
 <div class="modal-overlay" id="project-overlay" onclick="if(event.target===this)closeProjectModal()">
-  <div class="modal" onclick="event.stopPropagation()" style="max-width:440px;">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:460px;">
     <div class="modal-drag"></div>
     <div class="modal-title" id="project-modal-title">New project</div>
     <div class="field"><label>Project name</label><input type="text" id="proj-name" placeholder="e.g. D365 Navigator"/></div>
     <div class="field">
-      <label>Google Sheet ID <span style="font-weight:400;opacity:.55;letter-spacing:0;text-transform:none;">(optional — auto-created if blank)</span></label>
-      <input type="text" id="proj-sheet-id" placeholder="Paste Sheet ID or leave blank"/>
-      <div class="sheet-url-note">The Sheet ID is the long string in the Sheets URL between /d/ and /edit</div>
+      <label>Google Sheet <span style="font-weight:400;opacity:.55;letter-spacing:0;text-transform:none;">— where data is stored</span></label>
+      <div class="picker-tab-row">
+        <button class="picker-tab active" onclick="switchPickerTab('browse',this)">Browse my Drive</button>
+        <button class="picker-tab" onclick="switchPickerTab('id',this)">Paste Sheet ID</button>
+        <button class="picker-tab" onclick="switchPickerTab('new',this)">Create new</button>
+      </div>
+      <!-- Browse tab -->
+      <div id="picker-browse">
+        <div class="sheet-list" id="picker-list">
+          <div class="picker-loading" id="picker-loading">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="animation:spin 1s linear infinite;display:inline-block;margin-right:6px;vertical-align:middle"><path d="M14 8A6 6 0 1 1 8 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Loading your sheets…
+          </div>
+        </div>
+        <div style="margin-top:6px;display:flex;align-items:center;gap:8px;">
+          <input type="text" id="picker-search" placeholder="Search…" style="flex:1;padding:7px 10px;font-size:13px;border:.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-family:inherit;outline:none;" oninput="searchSheets()" onfocus="this.select()"/>
+          <button class="sync-btn" onclick="loadSheetList()" title="Refresh">
+            <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M12 2v4H8M1 11V7h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.5 4.5A5 5 0 0 1 11 6M10.5 8.5A5 5 0 0 1 2 7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            Refresh
+          </button>
+        </div>
+        <div id="picker-selected-name" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(50,102,173,.07);border:.5px solid rgba(50,102,173,.2);border-radius:var(--radius);font-size:12px;color:var(--accent);">
+          ✓ <span id="picker-selected-label"></span>
+        </div>
+      </div>
+      <!-- ID tab -->
+      <div id="picker-id" style="display:none;">
+        <input type="text" id="proj-sheet-id" placeholder="Paste Sheet ID…" style="width:100%;padding:9px 11px;font-size:14px;border:.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-family:inherit;outline:none;"/>
+        <div class="sheet-url-note">The Sheet ID is the long string in the URL between /d/ and /edit</div>
+      </div>
+      <!-- New tab -->
+      <div id="picker-new" style="display:none;">
+        <div style="padding:14px;background:var(--bg2);border-radius:var(--radius);border:.5px solid var(--border2);font-size:13px;color:var(--text2);line-height:1.6;">
+          A new Google Sheet will be created in your Drive automatically when you save the project.
+        </div>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeProjectModal()">Cancel</button>
@@ -410,13 +459,37 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 
 <!-- Sheet Settings Modal -->
 <div class="modal-overlay" id="sheet-settings-overlay" onclick="if(event.target===this)closeSheetSettings()">
-  <div class="modal" onclick="event.stopPropagation()" style="max-width:440px;">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:460px;">
     <div class="modal-drag"></div>
-    <div class="modal-title">Sheet settings</div>
+    <div class="modal-title">Change sheet</div>
     <div class="field">
-      <label>Google Sheet ID</label>
-      <input type="text" id="ss-sheet-id" placeholder="Paste Sheet ID"/>
-      <div class="sheet-url-note">Find it in the URL: docs.google.com/spreadsheets/d/<strong>[ID]</strong>/edit</div>
+      <label>Google Sheet</label>
+      <div class="picker-tab-row">
+        <button class="picker-tab active" onclick="switchSettingsTab('browse',this)">Browse my Drive</button>
+        <button class="picker-tab" onclick="switchSettingsTab('id',this)">Paste Sheet ID</button>
+      </div>
+      <div id="ss-picker-browse">
+        <div class="sheet-list" id="ss-picker-list">
+          <div class="picker-loading" id="ss-picker-loading">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="animation:spin 1s linear infinite;display:inline-block;margin-right:6px;vertical-align:middle"><path d="M14 8A6 6 0 1 1 8 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Loading your sheets…
+          </div>
+        </div>
+        <div style="margin-top:6px;display:flex;align-items:center;gap:8px;">
+          <input type="text" id="ss-picker-search" placeholder="Search…" style="flex:1;padding:7px 10px;font-size:13px;border:.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-family:inherit;outline:none;" oninput="searchSheetsSS()"/>
+          <button class="sync-btn" onclick="loadSheetListSS()">
+            <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M12 2v4H8M1 11V7h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.5 4.5A5 5 0 0 1 11 6M10.5 8.5A5 5 0 0 1 2 7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            Refresh
+          </button>
+        </div>
+        <div id="ss-selected-name" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(50,102,173,.07);border:.5px solid rgba(50,102,173,.2);border-radius:var(--radius);font-size:12px;color:var(--accent);">
+          ✓ <span id="ss-selected-label"></span>
+        </div>
+      </div>
+      <div id="ss-picker-id" style="display:none;">
+        <input type="text" id="ss-sheet-id" placeholder="Paste Sheet ID" style="width:100%;padding:9px 11px;font-size:14px;border:.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-family:inherit;outline:none;"/>
+        <div class="sheet-url-note">Find it in the URL: docs.google.com/spreadsheets/d/<strong>[ID]</strong>/edit</div>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeSheetSettings()">Cancel</button>
@@ -428,7 +501,97 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 const GOOGLE_CLIENT_ID = '606649631097-dg0baro8puc6klctrhgcu4rl57rmo9hl.apps.googleusercontent.com';
-const SCOPES='https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file';
+const SCOPES='https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.metadata.readonly';
+
+/* ════════════════════════════════════════════════════════════════
+   DESIGN SYSTEM — keep all new UI consistent with these tokens
+   ════════════════════════════════════════════════════════════════
+
+   COLORS (CSS vars — always use these, never raw hex in new code)
+   --bg          Page / modal background
+   --bg2         Sidebar, cards, input backgrounds
+   --bg3         Hover states, pressed states
+   --text        Primary text
+   --text2       Secondary / label text
+   --text3       Placeholder, hint, meta text
+   --border      Subtle dividers (table rows, section separators)
+   --border2     Input borders, card outlines
+   --accent      #3266ad — links, active states, focus rings, badges
+
+   TYPOGRAPHY
+   Body:   13–14px, font-weight 400/500, color var(--text2) for labels
+   Title:  15px, font-weight 500, color var(--text)
+   Meta:   11px, color var(--text3)
+   Mono:   'SF Mono','Menlo',monospace — amounts only
+   Labels: 11px, font-weight 500, text-transform:uppercase, letter-spacing:.06em
+
+   SPACING
+   Content padding:  20px (16px mobile)
+   Card padding:     13–15px
+   Gap between items: 8–12px
+   Section gap:      20–28px
+
+   RADIUS
+   --radius     8px  — inputs, buttons, badges, small cards
+   --radius-lg  12px — stat cards, chart cards
+
+   SHADOWS
+   Modal:  0 16px 60px rgba(0,0,0,.2)
+   Popup:  0 8px 24px rgba(0,0,0,.12)
+   Active card: box-shadow: 0 0 0 .5px var(--border2)
+
+   COMPONENTS — reuse these patterns, don't invent new ones
+
+   Button primary (add-btn):
+     background:var(--text); color:var(--bg); border-radius:var(--radius);
+     padding:7px 14px; font-size:13px; font-weight:500
+
+   Button secondary (sync-btn / edit-btn):
+     border:.5px solid var(--border2); border-radius:var(--radius);
+     padding:6px 10px; font-size:12px; color:var(--text2); background:none
+
+   Button danger (btn-danger):
+     border:.5px solid rgba(204,68,68,.4); color:#cc4444
+
+   Input / select:
+     border:.5px solid var(--border2); border-radius:var(--radius);
+     background:var(--bg2); padding:9px 11px; font-size:15px
+     focus: border-color:var(--accent); box-shadow:0 0 0 3px rgba(50,102,173,.12)
+
+   Category badges (.cat-badge):
+     padding:3px 8px; border-radius:5px; font-size:11px; font-weight:500
+     subscriptions: bg #E6F1FB / #0C447C  (dark: #0C447C / #B5D4F4)
+     hosting:       bg #EAF3DE / #27500A  (dark: #27500A / #C0DD97)
+     tools:         bg #FAEEDA / #633806  (dark: #633806 / #FAC775)
+     other:         bg #F1EFE8 / #444441  (dark: #3a3a3c / #ababab)
+
+   Stat card (.stat-card):
+     background:var(--bg2); border-radius:var(--radius-lg); padding:13px 14px
+     label: 10px uppercase; value: 20px weight-500; sub: 11px text3
+
+   Table rows:
+     th: 10px uppercase, color text2, border-bottom .5px border
+     td: 13px, padding 10px 8px, border-bottom .5px border
+     hover: background var(--bg2)
+
+   Modal:
+     max-width 480px (narrow: 420–440px); border-radius:16px
+     overlay background: rgba(0,0,0,.35)
+
+   Sync status dot:
+     syncing: #BA7517 (amber, pulsing)
+     ok:      #639922 (green)
+     error:   #cc4444 (red)
+
+   ADDING NEW FEATURES — checklist
+   □ Use existing CSS vars, never hardcode colors
+   □ Reuse .field / .row2 / .modal-actions patterns for forms
+   □ Tables get makeToolbar() for filter+sort
+   □ New modals: copy structure from existing, max-width 440–480px
+   □ New nav items: add to switchView() dispatch map
+   □ Amounts: always fmtCur() or fmtEUR(), monospace font
+   □ Dates: YYYY-MM-DD strings throughout, display as-is
+   ════════════════════════════════════════════════════════════════ */
 
 const SK='exp_expenses_v1',VK='exp_vendors_v1',RK='exp_overrides_v1',PK='exp_projects_v1',APK='exp_active_proj_v1',TK='exp_token_v1';
 function loadLS(k,def=[]){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def}catch{return def}}
@@ -513,6 +676,14 @@ async function gFetch(url,opts={}){
   const r=await fetch(url,{...opts,headers:{...opts.headers,'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'}});
   if(!r.ok){const e=await r.text();throw new Error(e)}
   return r.json();
+}
+
+// List all Google Sheets in the user's Drive (for the picker)
+async function listDriveSheets(query=''){
+  let q="mimeType='application/vnd.google-apps.spreadsheet' and trashed=false";
+  if(query)q+=` and name contains '${query.replace(/'/g,"\\'")}'`;
+  const r=await gFetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,modifiedTime)&orderBy=modifiedTime desc&pageSize=30`);
+  return r.files||[];
 }
 
 const HEADER=['ID','Vendor','Note','Amount','Currency','Category','Date','Recurring'];
@@ -610,15 +781,120 @@ function updateProject(proj){saveProjects(loadProjects().map(p=>p.id===proj.id?p
 function openNewProject(){
   document.getElementById('project-modal-title').textContent='New project';
   document.getElementById('proj-save-btn').textContent='Create project';
-  document.getElementById('proj-name').value='';document.getElementById('proj-sheet-id').value='';
+  document.getElementById('proj-name').value='';
+  if(document.getElementById('proj-sheet-id'))document.getElementById('proj-sheet-id').value='';
+  pickerSelectedId=null;pickerSelectedName=null;
+  document.getElementById('picker-selected-name').style.display='none';
+  // Reset to browse tab
+  switchPickerTab('browse',document.querySelector('.picker-tab-row .picker-tab'));
   document.getElementById('project-overlay').classList.add('open');
-  setTimeout(()=>document.getElementById('proj-name').focus(),80);closeSidebar();
+  setTimeout(()=>{document.getElementById('proj-name').focus();loadSheetList()},80);
+  closeSidebar();
 }
 function closeProjectModal(){document.getElementById('project-overlay').classList.remove('open')}
+
+// ── Sheet picker state ────────────────────
+let pickerSelectedId=null,pickerSelectedName=null;
+let pickerAllSheets=[],pickerCurrentTab='browse';
+let ssSelectedId=null,ssSelectedName=null;
+let ssAllSheets=[],ssCurrentTab='browse';
+
+function switchPickerTab(tab,btn){
+  pickerCurrentTab=tab;
+  document.querySelectorAll('.picker-tab-row .picker-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('picker-browse').style.display=tab==='browse'?'block':'none';
+  document.getElementById('picker-id').style.display=tab==='id'?'block':'none';
+  document.getElementById('picker-new').style.display=tab==='new'?'block':'none';
+}
+
+function switchSettingsTab(tab,btn){
+  ssCurrentTab=tab;
+  document.querySelectorAll('#sheet-settings-overlay .picker-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('ss-picker-browse').style.display=tab==='browse'?'block':'none';
+  document.getElementById('ss-picker-id').style.display=tab==='id'?'block':'none';
+}
+
+async function loadSheetList(){
+  const list=document.getElementById('picker-list');
+  list.innerHTML='<div class="picker-loading"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="animation:spin 1s linear infinite;display:inline-block;margin-right:6px;vertical-align:middle"><path d="M14 8A6 6 0 1 1 8 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Loading…</div>';
+  try{
+    pickerAllSheets=await listDriveSheets();
+    renderPickerList(pickerAllSheets);
+  }catch(e){list.innerHTML='<div class="picker-empty">Could not load sheets — check permissions.</div>'}
+}
+
+async function loadSheetListSS(){
+  const list=document.getElementById('ss-picker-list');
+  list.innerHTML='<div class="picker-loading"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="animation:spin 1s linear infinite;display:inline-block;margin-right:6px;vertical-align:middle"><path d="M14 8A6 6 0 1 1 8 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Loading…</div>';
+  try{
+    ssAllSheets=await listDriveSheets();
+    renderSSList(ssAllSheets);
+  }catch(e){list.innerHTML='<div class="picker-empty">Could not load sheets.</div>'}
+}
+
+function renderPickerList(sheets){
+  const list=document.getElementById('picker-list');
+  if(!sheets.length){list.innerHTML='<div class="picker-empty">No sheets found.</div>';return}
+  list.innerHTML=sheets.map(s=>{
+    const date=s.modifiedTime?new Date(s.modifiedTime).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+    const sel=pickerSelectedId===s.id;
+    return`<div class="sheet-list-item${sel?' selected':''}" onclick="selectSheet('${s.id}','${s.name.replace(/'/g,"\\'")}')">
+      <span class="sheet-item-name">${s.name}</span>
+      <span class="sheet-item-date">${date}</span>
+      ${sel?'<svg class="sheet-pick-check" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7l4 4 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
+    </div>`;
+  }).join('');
+}
+
+function renderSSList(sheets){
+  const list=document.getElementById('ss-picker-list');
+  if(!sheets.length){list.innerHTML='<div class="picker-empty">No sheets found.</div>';return}
+  list.innerHTML=sheets.map(s=>{
+    const date=s.modifiedTime?new Date(s.modifiedTime).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+    const sel=ssSelectedId===s.id;
+    return`<div class="sheet-list-item${sel?' selected':''}" onclick="selectSheetSS('${s.id}','${s.name.replace(/'/g,"\\'")}')">
+      <span class="sheet-item-name">${s.name}</span>
+      <span class="sheet-item-date">${date}</span>
+      ${sel?'<svg class="sheet-pick-check" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7l4 4 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
+    </div>`;
+  }).join('');
+}
+
+function selectSheet(id,name){
+  pickerSelectedId=id;pickerSelectedName=name;
+  document.getElementById('picker-selected-label').textContent=name;
+  document.getElementById('picker-selected-name').style.display='block';
+  renderPickerList(pickerAllSheets.filter(s=>{const q=document.getElementById('picker-search').value.toLowerCase();return !q||s.name.toLowerCase().includes(q)}));
+}
+
+function selectSheetSS(id,name){
+  ssSelectedId=id;ssSelectedName=name;
+  document.getElementById('ss-selected-label').textContent=name;
+  document.getElementById('ss-selected-name').style.display='block';
+  renderSSList(ssAllSheets.filter(s=>{const q=document.getElementById('ss-picker-search').value.toLowerCase();return !q||s.name.toLowerCase().includes(q)}));
+}
+
+function searchSheets(){
+  const q=document.getElementById('picker-search').value.toLowerCase();
+  renderPickerList(pickerAllSheets.filter(s=>!q||s.name.toLowerCase().includes(q)));
+}
+
+function searchSheetsSS(){
+  const q=document.getElementById('ss-picker-search').value.toLowerCase();
+  renderSSList(ssAllSheets.filter(s=>!q||s.name.toLowerCase().includes(q)));
+}
+
 async function saveProject(){
   const name=document.getElementById('proj-name').value.trim();if(!name){alert('Enter a project name.');return}
   const btn=document.getElementById('proj-save-btn');btn.disabled=true;btn.textContent='Creating…';
-  const proj={id:Date.now().toString(),name,sheetId:document.getElementById('proj-sheet-id').value.trim()||null,sheetName:name};
+  // Resolve sheet ID based on active tab
+  let sheetId=null;
+  if(pickerCurrentTab==='browse'){sheetId=pickerSelectedId||null}
+  else if(pickerCurrentTab==='id'){sheetId=document.getElementById('proj-sheet-id').value.trim()||null}
+  // 'new' tab → sheetId stays null → auto-created
+  const proj={id:Date.now().toString(),name,sheetId,sheetName:name};
   setSyncStatus('syncing','Setting up sheet…');
   try{
     const ready=await ensureSheet(proj);const ps=loadProjects();ps.push(ready);saveProjects(ps);
@@ -627,9 +903,28 @@ async function saveProject(){
   }catch(e){setSyncStatus('error','Failed: '+e.message)}
   finally{btn.disabled=false;btn.textContent='Create project'}
 }
-function openSheetSettings(){const p=getActiveProject();document.getElementById('ss-sheet-id').value=p?p.sheetId||'':'';document.getElementById('sheet-settings-overlay').classList.add('open')}
+function openSheetSettings(){
+  const p=getActiveProject();
+  ssSelectedId=p?p.sheetId||null:null;ssSelectedName=null;
+  document.getElementById('ss-selected-name').style.display='none';
+  // reset to browse tab
+  switchSettingsTab('browse',document.querySelector('#sheet-settings-overlay .picker-tab'));
+  document.getElementById('sheet-settings-overlay').classList.add('open');
+  setTimeout(()=>loadSheetListSS(),80);
+}
 function closeSheetSettings(){document.getElementById('sheet-settings-overlay').classList.remove('open')}
-async function saveSheetSettings(){const p=getActiveProject();if(!p)return;p.sheetId=document.getElementById('ss-sheet-id').value.trim();updateProject(p);closeSheetSettings();syncFromSheet()}
+async function saveSheetSettings(){
+  const p=getActiveProject();if(!p)return;
+  if(ssCurrentTab==='browse'){
+    if(!ssSelectedId){alert('Please select a sheet.');return}
+    p.sheetId=ssSelectedId;
+  } else {
+    const id=document.getElementById('ss-sheet-id').value.trim();
+    if(!id){alert('Please enter a Sheet ID.');return}
+    p.sheetId=id;
+  }
+  updateProject(p);closeSheetSettings();syncFromSheet();
+}
 
 // ── FX & formatting ───────────────────────
 const FX={EUR:1,USD:.92,GBP:1.17,CHF:1.04,JPY:.0061,CAD:.68,AUD:.60};
